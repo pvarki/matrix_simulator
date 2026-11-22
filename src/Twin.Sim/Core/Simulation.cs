@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Twin.Sim.Combat;
 using Twin.Sim.Events;
 using Twin.Sim.Geometry;
@@ -183,6 +184,9 @@ public sealed class Simulation
     public Unit GetUnit(string id) =>
         _units.TryGetValue(id, out var unit) ? unit : throw new KeyNotFoundException($"No unit with id '{id}'.");
 
+    /// <summary>Gets a unit by id, or false if there is none.</summary>
+    internal bool TryGetUnit(string id, [NotNullWhen(true)] out Unit? unit) => _units.TryGetValue(id, out unit);
+
     /// <summary>
     /// Issues an order. It is validated immediately and takes effect at the start of the next tick.
     /// A new order replaces the unit's current order, except <see cref="SetPosture"/>, <see cref="SetSquadPosture"/> and
@@ -194,57 +198,7 @@ public sealed class Simulation
     public void Issue(string unitId, Order order)
     {
         ArgumentNullException.ThrowIfNull(order);
-        if (!_units.ContainsKey(unitId))
-        {
-            throw new OrderRejectedException($"No unit with id '{unitId}'.");
-        }
-
-        if (_units[unitId].Health == Health.OutOfAction)
-        {
-            throw new OrderRejectedException($"Unit '{unitId}' is out of action.");
-        }
-
-        if (order is FireAt fireAt)
-        {
-            ValidateFireAt(_units[unitId], fireAt);
-        }
-
-        if (order is SetPosture or CeaseFire && _units[unitId].Combatant is null)
-        {
-            throw new OrderRejectedException($"Unit '{unitId}' is not a fighter.");
-        }
-
-        if (order is SetSquadPosture or SetSquadFormation or ResumeMovement && SquadOf(unitId)?.LeaderId != unitId)
-        {
-            throw new OrderRejectedException($"Unit '{unitId}' does not lead a squad.");
-        }
-
-        if (order is SetSquadFormation { Formation: var formation } && !Enum.IsDefined(formation))
-        {
-            throw new OrderRejectedException($"Unknown formation {formation}.");
-        }
-
-        if (order is Rejoin && (SquadOf(unitId) is not { } own || own.LeaderId == unitId))
-        {
-            throw new OrderRejectedException($"Unit '{unitId}' is not a squad member who could rejoin its squad.");
-        }
-
-        if (order is Watch { Direction: var direction } &&
-            (!double.IsFinite(direction.X) || !double.IsFinite(direction.Y) || direction.Length <= 1e-9))
-        {
-            throw new OrderRejectedException($"A watch order needs a finite direction, not {direction}.");
-        }
-
-        if (order is MoveTo move && !Terrain.Contains(move.Destination))
-        {
-            throw new OrderRejectedException($"Destination {move.Destination} is outside the map.");
-        }
-
-        if (order is MoveThroughCorridor corridorOrder)
-        {
-            ValidateCorridorOrder(_units[unitId], corridorOrder);
-        }
-
+        OrderValidator.Validate(this, unitId, order);
         _pendingOrders.Add((unitId, order));
     }
 
@@ -507,68 +461,6 @@ public sealed class Simulation
     }
 
     private static WatchSnapshot Watch(Unit unit) => new(unit.Id, unit.WatchDirection, unit.ObservationSectors, unit.WatchesAir);
-
-    private void ValidateFireAt(Unit unit, FireAt order)
-    {
-        if (unit.Combatant is not { } shooter)
-        {
-            throw new OrderRejectedException($"Unit '{unit.Id}' is not a fighter.");
-        }
-
-        if (!_units.TryGetValue(order.TargetId, out var target) || target.Combatant is not { } other)
-        {
-            throw new OrderRejectedException($"No fighter with id '{order.TargetId}'.");
-        }
-
-        if (target == unit || other.Side == shooter.Side)
-        {
-            throw new OrderRejectedException($"'{order.TargetId}' is on {unit.Id}'s own side.");
-        }
-    }
-
-    private void ValidateCorridorOrder(Unit unit, MoveThroughCorridor order)
-    {
-        var corridor = order.Corridor ?? throw new OrderRejectedException("The order has no corridor.");
-        if (Terrain is not IWorldQuery)
-        {
-            throw new OrderRejectedException("Corridor orders need a raster world with terrain classes.");
-        }
-
-        if (unit.Profile is null)
-        {
-            throw new OrderRejectedException($"Unit '{unit.Id}' has no movement profile.");
-        }
-
-        if (corridor.Centerline is not { Count: >= 2 })
-        {
-            throw new OrderRejectedException("A corridor's centerline needs at least two points.");
-        }
-
-        if (!Terrain.Contains(order.Destination))
-        {
-            throw new OrderRejectedException($"The corridor ends at {order.Destination}, outside the map.");
-        }
-
-        if (corridor.Width <= 0 || corridor.SoftMargin < 0 || corridor.SoftPenalty < 0)
-        {
-            throw new OrderRejectedException("A corridor needs a positive width and a non-negative soft margin and penalty.");
-        }
-
-        var world = (IWorldQuery)Terrain;
-        foreach (var (name, point) in new[] { ("starts", unit.Position.Xy), ("would end", order.Destination) })
-        {
-            if (Segments.DistanceToPolyline(point, corridor.Centerline) > corridor.OuterLimit)
-            {
-                throw new OrderRejectedException($"Unit '{unit.Id}' {name} at {point}, outside the corridor's outer limit.");
-            }
-
-            var terrain = world.ClassAt(point.X, point.Y);
-            if (unit.Profile.BaseSpeed(terrain) <= 0)
-            {
-                throw new OrderRejectedException($"Unit '{unit.Id}' {name} at {point}, in impassable terrain ({terrain}).");
-            }
-        }
-    }
 
     /// <summary>
     /// A fingerprint of the complete simulation state. Two runs with the same inputs must
