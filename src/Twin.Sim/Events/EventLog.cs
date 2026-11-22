@@ -20,17 +20,27 @@ public static class EventLog
     public const int SchemaVersion = 1;
 
     /// <summary>Writes events as JSON Lines, each line ending in \n.</summary>
+    /// <exception cref="ArgumentException">An event is of an unknown type or holds a number that is not finite.</exception>
     public static string ToJsonLines(IReadOnlyList<SimEvent> events)
     {
         ArgumentNullException.ThrowIfNull(events);
         var text = new StringBuilder();
         using var buffer = new MemoryStream();
-        foreach (var e in events)
+        for (var i = 0; i < events.Count; i++)
         {
+            var e = events[i];
             buffer.SetLength(0);
-            using (var writer = new Utf8JsonWriter(buffer))
+            try
             {
+                using var writer = new Utf8JsonWriter(buffer);
                 Write(writer, e);
+            }
+            catch (ArgumentException inner)
+            {
+                throw new ArgumentException(
+                    string.Create(CultureInfo.InvariantCulture, $"Cannot write event {i} ({e.GetType().Name}, agent {e.AgentId}): {inner.Message}"),
+                    nameof(events),
+                    inner);
             }
 
             text.Append(Encoding.UTF8.GetString(buffer.GetBuffer(), 0, (int)buffer.Length)).Append('\n');
@@ -57,7 +67,8 @@ public static class EventLog
                 using var json = JsonDocument.Parse(line.TrimEnd('\r'));
                 events.Add(Read(json.RootElement));
             }
-            catch (Exception e) when (e is JsonException or KeyNotFoundException or ArgumentException or FormatException or InvalidOperationException)
+            catch (Exception e) when (e is JsonException or KeyNotFoundException or ArgumentException or FormatException or InvalidOperationException
+                or IndexOutOfRangeException)
             {
                 throw new InvalidDataException($"Invalid event log line {events.Count + 1}: {e.Message}", e);
             }
@@ -71,7 +82,7 @@ public static class EventLog
         w.WriteStartObject();
         w.WriteNumber("v", SchemaVersion);
         w.WriteString("type", TagOf(e));
-        w.WriteNumber("time", e.Time);
+        w.WriteNumber("time", Finite(e.Time, "time"));
         w.WriteString("agent", e.AgentId);
         switch (e)
         {
@@ -89,9 +100,9 @@ public static class EventLog
                 foreach (var sector in watch.Sectors)
                 {
                     w.WriteStartArray();
-                    w.WriteNumberValue(sector.Centre.X);
-                    w.WriteNumberValue(sector.Centre.Y);
-                    w.WriteNumberValue(sector.WidthDegrees);
+                    w.WriteNumberValue(Finite(sector.Centre.X, "sectors"));
+                    w.WriteNumberValue(Finite(sector.Centre.Y, "sectors"));
+                    w.WriteNumberValue(Finite(sector.WidthDegrees, "sectors"));
                     w.WriteEndArray();
                 }
 
@@ -108,11 +119,11 @@ public static class EventLog
                 w.WriteStartArray("waypoints");
                 foreach (var p in planned.Waypoints)
                 {
-                    WritePoint(w, null, p);
+                    WritePointValue(w, "waypoints", p);
                 }
 
                 w.WriteEndArray();
-                w.WriteNumber("cost", planned.CostSeconds);
+                w.WriteNumber("cost", Finite(planned.CostSeconds, "cost"));
                 break;
             case PermissionRequested requested:
                 w.WriteString("boundary", requested.BoundaryId);
@@ -351,30 +362,34 @@ public static class EventLog
         w.WriteEndArray();
     }
 
-    private static void WritePoint(Utf8JsonWriter w, string? name, Vec2 p)
+    private static void WritePoint(Utf8JsonWriter w, string name, Vec2 p)
     {
-        if (name is null)
-        {
-            w.WriteStartArray();
-        }
-        else
-        {
-            w.WriteStartArray(name);
-        }
+        w.WritePropertyName(name);
+        WritePointValue(w, name, p);
+    }
 
-        w.WriteNumberValue(p.X);
-        w.WriteNumberValue(p.Y);
+    private static void WritePointValue(Utf8JsonWriter w, string field, Vec2 p)
+    {
+        w.WriteStartArray();
+        w.WriteNumberValue(Finite(p.X, field));
+        w.WriteNumberValue(Finite(p.Y, field));
         w.WriteEndArray();
     }
 
     private static void WritePoint(Utf8JsonWriter w, string name, Vec3 p)
     {
         w.WriteStartArray(name);
-        w.WriteNumberValue(p.X);
-        w.WriteNumberValue(p.Y);
-        w.WriteNumberValue(p.Z);
+        w.WriteNumberValue(Finite(p.X, name));
+        w.WriteNumberValue(Finite(p.Y, name));
+        w.WriteNumberValue(Finite(p.Z, name));
         w.WriteEndArray();
     }
+
+    /// <summary>Returns <paramref name="value"/>, or throws if it is NaN or infinite: the log holds only finite numbers (ADR 0014).</summary>
+    private static double Finite(double value, string field) => double.IsFinite(value)
+        ? value
+        : throw new ArgumentException(string.Create(CultureInfo.InvariantCulture,
+            $"Field '{field}' is {value}, not finite; the event log holds only finite numbers."));
 
     private static Vec2 Point2(JsonElement a) => new(a[0].GetDouble(), a[1].GetDouble());
 
