@@ -13,7 +13,9 @@ using var input = JsonDocument.Parse(Console.In.ReadToEnd());
 var tool = input.RootElement.GetProperty("tool_name").GetString() ?? string.Empty;
 var toolInput = input.RootElement.GetProperty("tool_input");
 var phaseFile = Path.Combine(root, ".claude", "state", "phase");
-var phase = File.Exists(phaseFile) ? File.ReadAllText(phaseFile).Trim() : "implement";
+// Same rule in guard.cs, verify.cs, session-start.cs and tools/dev.cs (file-based apps cannot share code):
+// a missing, empty or unknown phase file means spec, the safe default.
+var phase = File.Exists(phaseFile) && File.ReadAllText(phaseFile).Trim() == "implement" ? "implement" : "spec";
 
 if (tool == "Bash")
 {

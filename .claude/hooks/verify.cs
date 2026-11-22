@@ -11,7 +11,9 @@ _ = Console.In.ReadToEnd();
 var stateDir = Path.Combine(root, ".claude", "state");
 var counterFile = Path.Combine(stateDir, "stop-blocks");
 var phaseFile = Path.Combine(stateDir, "phase");
-var phase = File.Exists(phaseFile) ? File.ReadAllText(phaseFile).Trim() : "implement";
+// Same rule in guard.cs, verify.cs, session-start.cs and tools/dev.cs (file-based apps cannot share code):
+// a missing, empty or unknown phase file means spec, the safe default.
+var phase = File.Exists(phaseFile) && File.ReadAllText(phaseFile).Trim() == "implement" ? "implement" : "spec";
 
 // Nothing changed in the working tree: a conversation, not a code change. Nothing to verify.
 if (string.IsNullOrWhiteSpace(Run("git", "status --porcelain -- src tests tools").Output))

@@ -3,7 +3,9 @@
 var root = Environment.GetEnvironmentVariable("CLAUDE_PROJECT_DIR") ?? Directory.GetCurrentDirectory();
 _ = Console.In.ReadToEnd();
 var phaseFile = Path.Combine(root, ".claude", "state", "phase");
-var phase = File.Exists(phaseFile) ? File.ReadAllText(phaseFile).Trim() : "implement";
+// Same rule in guard.cs, verify.cs, session-start.cs and tools/dev.cs (file-based apps cannot share code):
+// a missing, empty or unknown phase file means spec, the safe default.
+var phase = File.Exists(phaseFile) && File.ReadAllText(phaseFile).Trim() == "implement" ? "implement" : "spec";
 Console.WriteLine($"Current TDD phase: {phase}. " + (phase == "spec"
     ? "Only tests may be written now; src/ is locked."
     : "Implement against the existing tests; do not modify existing test files."));

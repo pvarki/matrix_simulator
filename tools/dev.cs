@@ -293,8 +293,10 @@ int Phase(string[] a)
     var file = Path.Combine(root, ".claude", "state", "phase");
     if (a.Length == 0)
     {
-        var current = File.Exists(file) ? File.ReadAllText(file).Trim() : "implement";
-        Console.WriteLine($"TDD phase: {current}");
+        // Same rule in guard.cs, verify.cs, session-start.cs and tools/dev.cs (file-based apps cannot share code):
+        // a missing, empty or unknown phase file means spec, the safe default.
+        var current = File.Exists(file) && File.ReadAllText(file).Trim() == "implement" ? "implement" : "spec";
+        Console.WriteLine($"TDD phase: {current}" + (File.Exists(file) ? string.Empty : " (no phase set; default)"));
         return 0;
     }
 
