@@ -26,33 +26,14 @@ public sealed class SquadCohesionSystem : ISimSystem
         var doctrine = simulation.Config.SquadDoctrine;
         foreach (var squad in simulation.Squads)
         {
-            foreach (var member in squad.Members)
-            {
-                var unit = simulation.GetUnit(member.UnitId);
-                unit.HeldBySquad = false;
-                unit.SquadSpeedFactor = 1;
-            }
-
+            ResetSquadFactors(simulation, squad);
             if (squad.LeaderId is not { } leaderId)
             {
                 continue;
             }
 
             var leader = simulation.GetUnit(leaderId);
-            switch (leader.CurrentOrder)
-            {
-                case MoveThroughCorridor order:
-                    squad.Corridor = order.Corridor;
-                    squad.MovementStarted = true;
-                    break;
-                case MoveTo:
-                    squad.Corridor = null;
-                    squad.MovementStarted = true;
-                    break;
-                default:
-                    break;
-            }
-
+            AdoptLeaderOrder(squad, leader);
             if (squad.MovementOrder is not null && squad.OrderRequestedAt is null && leader.Health != Combat.Health.OutOfAction &&
                 leader.Drill is null && leader.CurrentOrder is not (MoveTo or MoveThroughCorridor))
             {
@@ -79,6 +60,35 @@ public sealed class SquadCohesionSystem : ISimSystem
             AnswerMemberRequest(simulation, squad, leaderId);
             squad.LeaderHeld = squad.PendingRequest is not null || Held(simulation, squad, leaderId, doctrine);
             leader.HeldBySquad = squad.LeaderHeld;
+        }
+    }
+
+    /// <summary>Clears last tick's squad hold and speed factor on every member; this tick's rules set them again.</summary>
+    private static void ResetSquadFactors(Simulation simulation, Squad squad)
+    {
+        foreach (var member in squad.Members)
+        {
+            var unit = simulation.GetUnit(member.UnitId);
+            unit.HeldBySquad = false;
+            unit.SquadSpeedFactor = 1;
+        }
+    }
+
+    /// <summary>The squad takes its corridor from the leader's movement order, and starts moving once the leader has one.</summary>
+    private static void AdoptLeaderOrder(Squad squad, Unit leader)
+    {
+        switch (leader.CurrentOrder)
+        {
+            case MoveThroughCorridor order:
+                squad.Corridor = order.Corridor;
+                squad.MovementStarted = true;
+                break;
+            case MoveTo:
+                squad.Corridor = null;
+                squad.MovementStarted = true;
+                break;
+            default:
+                break;
         }
     }
 
@@ -327,6 +337,13 @@ public sealed class SquadFollowSystem : ISimSystem
             return;
         }
 
+        Walk(simulation, member, profile, route, previous, dt);
+    }
+
+    /// <summary>Walks the member along its route for one tick, from where it was at the start of the tick.</summary>
+    private static void Walk(Simulation simulation, Unit member, MovementProfile profile, List<Vec2> route, Vec3 previous, double dt)
+    {
+        var position = previous.Xy;
         var remaining = dt;
         var next = 1;
         while (remaining > 0 && next < route.Count)
