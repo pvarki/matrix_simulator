@@ -68,6 +68,9 @@ public sealed class Simulation
     /// <summary>Everything that has happened so far, in order (spec v0.1 event log; see <see cref="EventLog"/>).</summary>
     public IReadOnlyList<SimEvent> EventLog => _events;
 
+    /// <summary>The systems in the order they run each tick (ADR 0013).</summary>
+    internal IReadOnlyList<ISimSystem> Systems => _systems;
+
     /// <summary>All squads, ordered by id (backlog 0004).</summary>
     public IReadOnlyCollection<Squad> Squads => _squads.Values;
 
