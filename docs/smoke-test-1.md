@@ -52,7 +52,8 @@ unless the team changes the ADR:
   `net10.0` fine.
 - Projects are `Twin.Sim`, `Twin.Headless`, `Twin.Client`, not `Sim.Core`/`Sim.World`/`Sim.Cli`/`Sim.Godot`.
 - The tick rate is configurable (`SimulationConfig.TickRateHz`, default 20 Hz). The spec's dt = 0.5 s is 2 Hz.
-- The existing `ITerrain` covers height only; the spec's `IWorldQuery` (terrain class, cell size) is new API.
+- The existing `ITerrain` covers height only; the spec's `IWorldQuery` (terrain class, cell size) was added for it
+  (`src/Twin.Sim/World/IWorldQuery.cs`).
 
 ## Implementation map
 
@@ -115,8 +116,9 @@ ring of the 30 m voice range, and where each side believes an enemy is a hollow 
 log records each fighter's side in `AgentPlaced` and its watch in `WatchChanged` (direction, sectors, air watch, logged
 when they change); replay rebuilds both.
 
-`./dev replay st1-combat` (add `--godot` to watch it) runs a built-in fire fight instead of a scenario file, because
-`scenario.json` holds one agent and no opponents: two fire teams of three under free fire with the backlog 0002 rifle,
+`./dev replay st1-combat` (add `--godot` to watch it) runs a built-in fire fight written in code before scenario
+files could hold a squad and enemies (backlog 0004 S2d; `st1-ambush` above is a scenario file):
+two fire teams of three under free fire with the backlog 0002 rifle,
 placed on the field of acceptance test K2 (`src/Twin.Headless/CombatDemo.cs`). Since backlog 0004 S5a1 fighters must
 spot an enemy before they fire, so each side starts watching toward the other (`Watch`). It runs until one side has nobody in
 action or nobody has fired for 120 s, and writes `replays/st1-combat.jsonl`.
@@ -138,4 +140,4 @@ Choices made while implementing, beyond the tests:
 | Pathfinding st1 (1 x 1 km): respecting / reference | 66 ms / 108 ms (with cliffs) |
 | Pathfinding st1-2km (2 x 2 km): respecting / reference | 195 ms / 298 ms (with cliffs) |
 | `./dev test`, all 110 tests | about 1.5 s of test time |
-| Godot frame rate on the whole area | not measured yet (viewer not built) |
+| Godot frame rate on the whole area | not measured yet |

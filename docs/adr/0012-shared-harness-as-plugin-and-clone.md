@@ -33,7 +33,7 @@ request here moves the pin (ADR 0011, point 1). No rule here depends on a specif
 ## Decision
 1. Remove the `harness/` submodule and `.gitmodules`.
 2. Each person who uses `matrix-docs` keeps their own clone, preferably next to this repository
-   (e.g. `~/code/godot-twin-sim` and `~/code/matrix-docs`). Setting `MATRIX_DOCS` to the clone's path is
+   (e.g. `~/code/matrix_simulator` and `~/code/matrix-docs`). Setting `MATRIX_DOCS` to the clone's path is
    recommended: it also works from git worktrees, where "next to the repository" points somewhere else.
 3. Claude Code users install the `matrix` plugin at **user scope** (per machine, not per branch or
    repository; nothing in this repository changes). Local scope (`.claude/settings.local.json`, not

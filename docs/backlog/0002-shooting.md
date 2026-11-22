@@ -182,11 +182,11 @@ is checked statistically with a fixed seed (see "Statistical tests" below).
 | ID | Test | Setup → expected |
 |---|---|---|
 | E1 | `E1_the_first_hit_pins_the_agent_completely_for_sixty_seconds` | hit → `Pinned`, prone: no movement, shots, posture changes or permission requests for 60 s |
-| E2 | `E2_after_sixty_seconds_a_pinned_agent_is_wounded_and_resumes_its_order` | at 60 s → `Wounded`, moves again at half speed |
-| E3 | `E3_a_second_hit_puts_the_agent_out_of_action` | second hit while pinned and while wounded → `OutOfAction` |
+| E2 | `E2_after_sixty_seconds_a_pinned_agent_is_wounded_and_resumes_its_order_at_half_speed` | at 60 s → `Wounded`, moves again at half speed |
+| E3 | `E3_a_second_hit_while_pinned_puts_the_agent_out_of_action`, `E3_a_hit_on_a_wounded_agent_puts_it_out_of_action` | second hit while pinned and while wounded → `OutOfAction` |
 | E4 | `E4_an_agent_out_of_action_neither_moves_shoots_nor_asks` | out of action mid-corridor → position fixed, no more events of its own |
-| E5 | `E5_a_shot_at_an_agent_suppresses_it_for_ten_seconds` | a miss → `Suppressed`, prone, in place; resumes order and posture after 10 s |
-| E6 | `E6_each_new_shot_extends_suppression` | shots every 2 s → still suppressed 10 s after the last shot |
+| E5 | `E5_a_shot_at_an_agent_suppresses_it_for_ten_seconds` | a miss → `Suppressed`, prone, in place; resumes order and posture after 10 s; *removed by 0003, replaced by 0003's SU4–SU7* |
+| E6 | `E6_each_new_shot_extends_suppression` | shots every 2 s → still suppressed 10 s after the last shot; *removed by 0003, replaced by 0003's SU4–SU7* |
 
 ### C: casualty care foundation (`tests/Twin.Scenarios.Tests/Combat/CasualtyTests.cs`)
 | ID | Test | Setup → expected |
@@ -199,11 +199,11 @@ is checked statistically with a fixed seed (see "Statistical tests" below).
 ### R: orders and rules of engagement (`tests/Twin.Scenarios.Tests/Combat/EngagementTests.cs`)
 | ID | Test | Setup → expected |
 |---|---|---|
-| R1 | `R1_fire_at_an_own_side_agent_is_rejected` | `OrderRejectedException`; also for an unknown target and for itself |
+| R1 | `R1_fire_at_an_own_side_agent_an_unknown_agent_or_oneself_is_rejected` | `OrderRejectedException`; also for an unknown target and for itself |
 | R2 | `R2_hold_fire_agent_does_not_shoot_even_when_fired_at` | enemy shoots it from the open at 100 m → no shots back |
 | R3 | `R3_return_fire_agent_must_shoot_back_at_whoever_shot_at_it` | red shoots blue → blue's next possible shot targets red |
 | R4 | `R4_return_fire_agent_does_not_open_fire_first` | both ReturnFire, visible → no shots |
-| R5 | `R5_return_fire_agent_shoots_back_at_a_shooter_seen_only_by_its_muzzle_flash` | shooter in 90 m of forest → blue shoots within the flash time |
+| R5 | `R5_free_fire_agent_engages_a_shooter_it_sees_only_by_its_muzzle_flash` | shooter in 90 m of forest → blue shoots within the flash time |
 | R6 | `R6_free_fire_agent_engages_the_nearest_visible_enemy` | two enemies at 80 m and 120 m → first target is the 80 m one; ties by id |
 | R7 | `R7_fire_at_stops_when_the_target_is_out_of_action` | after `OutOfAction` → no more shots at it |
 | R8 | `R8_an_agent_keeps_moving_along_its_corridor_while_firing` | corridor order + FreeFire, not suppressed → moves and fires |
@@ -219,7 +219,7 @@ is checked statistically with a fixed seed (see "Statistical tests" below).
 ### Acceptance on real terrain (`tests/Twin.Acceptance.Tests/Combat/EngagementOnSt1Tests.cs`)
 | ID | Test | Expected |
 |---|---|---|
-| K1 | `K1_agents_on_opposite_sides_of_a_hill_on_st1_cannot_see_each_other` | chosen points on st1 → not visible, but shots are heard |
+| K1 | `K1_agents_on_opposite_sides_of_a_hill_on_st1_cannot_see_each_other_but_hear_the_shots` | chosen points on st1 → not visible, but shots are heard |
 | K2 | `K2_across_a_field_on_st1_they_see_and_engage_each_other` | FreeFire both, run to the end → shots, at least one health change, no shots without line of sight |
 | K3 | `K3_line_of_sight_query_time_is_measured` | like P1: time 10 000 line-of-sight queries on st1, recorded, no limit |
 

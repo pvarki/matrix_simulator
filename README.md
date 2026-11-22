@@ -1,8 +1,8 @@
-# Twin — digital twin walking skeleton
+# Twin — digital twin of a military operating environment
 
 A deterministic 2.5D simulation of terrain and agents, with a Godot 4 client that shows it as a top-down
-map. This repository is a *walking skeleton*: one feature (ordering a unit to move) is built end to end
-using the team's agreed workflow, so every next feature can follow the same path.
+map. It started as a walking skeleton (one feature built end to end with the team's workflow); features are now
+added ticket by ticket from [docs/backlog](docs/backlog).
 
 ## Quick start
 
@@ -47,7 +47,7 @@ event log: `./dev replay st1` (see `docs/smoke-test-1.md`); add `--godot` to wat
 | `tools/dev.cs`, `./dev` | Team command line. |
 | `.claude/` | AI harness: hooks, skills, reviewer subagent. |
 | `docs/adr/` | Architecture decision records: what we decided and why. |
-| `docs/backlog/` | Next tickets, including the onboarding validation feature. |
+| `docs/backlog/` | Tickets: story, acceptance criteria, decisions and status of each feature. |
 
 ## How we work
 
@@ -57,9 +57,5 @@ Read, in this order: [AGENTS.md](AGENTS.md) (rules and commands, ten minutes),
 
 ## Status
 
-| Area | State |
-|---|---|
-| Move-to-position order | Done, tested, visible in client |
-| TDD workflow, AI harness, CI | Done; to be validated by the first onboarding feature |
-| Stop order | Next ticket: [docs/backlog/0001-stop-order.md](docs/backlog/0001-stop-order.md) |
-| Pathfinding, line of sight, NATO symbols | Not started |
+Each ticket in [docs/backlog](docs/backlog) starts with a **Status** line; that line, not this README, says what is
+built and what is next.

@@ -240,7 +240,8 @@ order follows 0002 and its doctrine (`ReturnFireOverridesFireAt`).
 
 The drill's values (snap shots, search distance and grid, fire-sector angle, reserve) are kept as data in
 `Doctrine.Drill`, and the reaction times and the light-suppression limit in `SuppressionRules`, so a scenario can
-calibrate them without code changes.
+calibrate them without code changes. *As built: the drill values sit in `Doctrine.Drill` and the others in
+`SuppressionRules`; both can be set through `SimulationConfig.Combat`, but scenario files cannot set them yet.*
 
 ### Event log (D)
 - `ShotFired(shooter, target, hit)` gains `mode` and `rounds`.

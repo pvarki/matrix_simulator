@@ -24,7 +24,7 @@ enforce it; with other tools it is a convention. In every case CI and code revie
 ## Step by step
 
 1. **Pick a ticket** with clear acceptance criteria. If criteria are vague, clarify them first.
-   Create a branch: `feature/<ticket-id>-short-name`.
+   Create a branch named after the ticket (see *Commit and branch conventions*).
 2. **Spec:** `./dev phase spec`. Write scenario tests, one per criterion (by hand or with an agent using
    the `tdd-feature` skill). Run `./dev test`; each new test must fail for the expected reason.
    - A test that uses a new type (for example a new order) does not compile, because `src/` is locked.
@@ -58,7 +58,8 @@ enforce it; with other tools it is a convention. In every case CI and code revie
 
 ## Commit and branch conventions
 
-- Branches: `feature/…`, `fix/…`, `chore/…`. Main is protected: merge via pull request only.
+- Branches: `feature/…`, `fix/…`, `chore/…`; an agent tool's own prefix (e.g. `claude/…`) is fine if the name
+  carries the ticket id. Main is protected: merge via pull request only.
 - Commit messages: `type: summary` with types `feat`, `fix`, `test`, `refactor`, `docs`, `chore`.
 - One package upgrade per pull request.
 
