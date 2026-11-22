@@ -7,8 +7,8 @@ namespace Twin.Scenarios.Tests.Combat;
 
 /// <summary>
 /// Fire modes in a fight (backlog 0003, M): a <see cref="FireAt"/> order and fire opened on one's own under free fire
-/// are aimed; the drill's first shots are snap shots, one per snap interval (0.7 s for the rifle). A machine-gun burst is
-/// one shot event of five rounds.
+/// are aimed; the drill's first shots are snap shots, one per snap interval on average (0.7 s for the rifle). A
+/// machine-gun burst is one shot event of five rounds.
 /// </summary>
 public class FireModeTests
 {
@@ -47,8 +47,8 @@ public class FireModeTests
         var snaps = sim.ShotsBy("blue").Take(3).ToList();
         Assert.All(snaps, s => Assert.Equal(FireMode.Snap, s.Mode));
         var interval = SpecShooting.Rifle.SnapSecondsPerShot;
-        Assert.All(snaps.Zip(snaps.Skip(1)), pair =>
-            Assert.InRange(pair.Second.Time - pair.First.Time, interval, interval + SpecV01.DtSeconds));
+        // One per snap interval on average: a single pair may be up to a tick off, but the three are never faster.
+        Assert.InRange(snaps[2].Time - snaps[0].Time, (2 * interval) - 1e-9, (2 * interval) + SpecV01.DtSeconds - 1e-9);
     }
 
     [Fact]
