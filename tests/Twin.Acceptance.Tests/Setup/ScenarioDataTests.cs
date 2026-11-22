@@ -1,3 +1,4 @@
+using Twin.Sim.World;
 using Twin.Testing;
 
 namespace Twin.Acceptance.Tests.Setup;
@@ -22,5 +23,18 @@ public class ScenarioDataTests
         var error = Assert.Throws<ScenarioAssertionException>(() => ScenarioFiles.Require("st1", "no-such-file.bin"));
 
         Assert.Contains("scenarios/st1/no-such-file.bin", error.Message.Replace('\\', '/'), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("st1")]
+    [InlineData("st1-2km")]
+    public void World_carries_the_exact_MML_attribution_its_README_requires(string scenario)
+    {
+        const string Required = "Contains data from the National Land Survey of Finland (Maanmittauslaitos) Elevation model 2 m "
+            + "and Topographic Database, downloaded 2026-11-08, licence CC BY 4.0.";
+
+        var loaded = WorldFiles.Load(Path.Combine(ScenarioFiles.Directory(scenario), "world"));
+
+        Assert.Equal(Required, loaded.Attribution);
     }
 }
