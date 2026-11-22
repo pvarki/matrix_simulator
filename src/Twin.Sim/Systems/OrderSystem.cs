@@ -75,10 +75,15 @@ internal sealed class OrderSystem : ISimSystem
                     unit.WatchDirection = watch.Direction.Normalized();
                     unit.HoldsWatch = true;
                     break;
+                case Stop:
+                    CombatQueries.EndOrder(unit);
+                    StandDown(unit);
+                    unit.CurrentOrder = null;
+                    break;
                 default:
                     CombatQueries.EndOrder(unit);
                     StandDown(unit);
-                    unit.CurrentOrder = order is Stop ? null : order;
+                    unit.CurrentOrder = order;
                     if (order is MoveTo or MoveThroughCorridor && simulation.SquadOf(unitId) is { } led && led.LeaderId == unitId)
                     {
                         SquadAlerts.Resume(simulation, led, unit, newOrder: order); // a new movement order ends a halt (S5a1)
