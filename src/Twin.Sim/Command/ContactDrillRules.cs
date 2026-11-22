@@ -1,8 +1,9 @@
 namespace Twin.Sim.Command;
 
 /// <summary>
-/// The values of the immediate action drill under fire (backlog 0003), kept in <see cref="Doctrine"/> so a scenario can
-/// calibrate them without code changes. Reaction times are per experience level (<c>SuppressionRules</c>).
+/// The values of the immediate action drill under fire (backlog 0003), kept in <see cref="Doctrine"/>. A simulation can
+/// be given other values (<c>SimulationConfig.Combat</c>), but scenario files cannot set them yet. Reaction times are
+/// per experience level (<c>SuppressionRules</c>).
 /// </summary>
 /// <param name="SnapShots">Snap shots fired while taking cover.</param>
 /// <param name="CoverSearchMeters">Cover and firing positions are looked for within this distance.</param>

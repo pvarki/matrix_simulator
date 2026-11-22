@@ -11,8 +11,8 @@ namespace Twin.Headless;
 
 /// <summary>
 /// A built-in fire fight for looking at shooting in a replay (<c>./dev replay st1-combat</c>). It is a demo, not a
-/// scenario file: the scenario format holds one agent and a corridor, so the fighters are placed here with the
-/// simulation's own API. Two fire teams of three face each other across the field of acceptance test K2 on
+/// scenario file: it predates squads and enemies in scenario files (backlog 0004 S2d), so the fighters are placed here
+/// with the simulation's own API. Two fire teams of three face each other across the field of acceptance test K2 on
 /// <c>scenarios/st1</c>, all under free fire with the backlog 0002 rifle.
 /// </summary>
 internal static class CombatDemo

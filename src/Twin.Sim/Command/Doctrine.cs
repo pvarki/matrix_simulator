@@ -11,8 +11,9 @@ public enum PermissionAnswerTiming
 }
 
 /// <summary>
-/// Rules decided by people rather than by physics, kept as data so they can be changed per scenario without changing
-/// code (<c>doctrine</c> in scenario.json; backlog 0002). The defaults are the decisions of 2026-11-09.
+/// Rules decided by people rather than by physics, kept as data in one place (backlog 0002). scenario.json's
+/// <c>doctrine</c> sets everything except <c>Drill</c>, which is not read from scenario files yet. The defaults are
+/// the decisions of 2026-11-09.
 /// </summary>
 /// <param name="ReturnFireOverridesFireAt">
 /// True: an agent under <c>ReturnFire</c> or <c>FreeFire</c> whose <c>FireAt</c> target cannot be engaged shoots back at a
