@@ -136,8 +136,10 @@ Points are ETRS-TM35FIN `[easting, northing]`, as read from a map; the simulatio
   `{ "id": "red-mg", "position": [E, N], "side": "red", "posture": "prone", "rules": "freeFire", "weapon": "machineGun",
   "experience": "regular", "watchToward": [E, N] }`. Only `id` and `position` are required; the defaults are those
   shown, except `posture` `standing`, `weapon` `rifle` and no `watchToward` (the fighter keeps its default watch).
-- The squad is always on the blue side. A scenario that cannot be placed fails when it is loaded: a squad start, a
-  member's starting slot or an enemy off the map, an id used twice, a corridor whose first segment has no length.
+- The squad is always on the blue side. A scenario that cannot be placed fails when it is loaded: the agent's or
+  squad's start, a member's starting slot, an enemy or B off the map or in water or a building (impassable for
+  infantry), an id used twice, a corridor whose first segment has no length. Cliffs are not checked here: whether B
+  can be reached across them is for the route to find out.
 - `expect` is read only by tests: `detourWithoutCrossing` says whether B can be reached inside the corridor without
   crossing any hard boundary, including leaving forest. A person sets it after studying the area.
 

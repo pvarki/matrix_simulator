@@ -137,6 +137,7 @@ public sealed class ScenarioDefinition
             throw Error("$.corridor.centerline", "needs at least one point.");
         }
 
+        CheckPosition(world, centerline[^1], $"$.corridor.centerline[{centerline.Length - 1}]", "the corridor's end B");
         var corridor = new Corridor(
             centerline,
             Get(corridorJson, "$.corridor", "width", Number),
@@ -184,10 +185,7 @@ public sealed class ScenarioDefinition
         var ids = new SortedSet<string>(StringComparer.Ordinal);
         foreach (var (enemy, path) in enemies)
         {
-            if (!world.World.Contains(enemy.Position))
-            {
-                throw Error($"{path}.position", $"enemy '{enemy.Id}' is off the map.");
-            }
+            CheckPosition(world, enemy.Position, $"{path}.position", $"enemy '{enemy.Id}'");
         }
 
         var enemyIds = enemies.Select(e => (e.Enemy.Id, Path: $"{e.Path}.id"));
@@ -204,9 +202,11 @@ public sealed class ScenarioDefinition
 
         Section(agent, "$.agent", "id", "start", "canRappel");
         var agentId = Get(agent, "$.agent", "id", Text);
+        var agentStart = Get(agent, "$.agent", "start", Local);
+        CheckPosition(world, agentStart, "$.agent.start", $"agent '{agentId}'");
         CheckUnique(ids, enemyIds.Prepend((agentId, "$.agent.id")));
         return new ScenarioDefinition(
-            world, agentId, Get(agent, "$.agent", "start", Local), corridor, leader,
+            world, agentId, agentStart, corridor, leader,
             permission, MovementProfile.Infantry with { CanRappel = Get(agent, "$.agent", "canRappel", Flag, false) },
             seed, tickRate, ReadDoctrine(root), null, new SortedDictionary<string, Combatant>(StringComparer.Ordinal),
             enemies.Select(e => e.Enemy).ToList());
@@ -259,16 +259,13 @@ public sealed class ScenarioDefinition
     }
 
     /// <summary>
-    /// Checks that the squad can be placed (its start and every member's starting slot on the map, a corridor to lay it
-    /// out along) and is valid as <see cref="Simulation.AddSquad"/> checks it, so an unusable squad fails when it is loaded.
+    /// Checks that the squad can be placed (its start and every member's starting slot on passable ground on the map, a
+    /// corridor to lay it out along) and is valid as <see cref="Simulation.AddSquad"/> checks it, so an unusable squad fails when it is loaded.
     /// </summary>
     private static void CheckSquad(
         LoadedWorld world, SquadDefinition squad, SortedDictionary<string, Combatant> combatants, Vec2 start, Corridor corridor)
     {
-        if (!world.World.Contains(start))
-        {
-            throw Error("$.squad.start", $"squad '{squad.Id}' starts off the map.");
-        }
+        CheckPosition(world, start, "$.squad.start", $"squad '{squad.Id}' start");
 
         if (corridor.Centerline.Count < 2 || corridor.Centerline[0].DistanceTo(corridor.Centerline[1]) < 1e-9)
         {
@@ -286,16 +283,31 @@ public sealed class ScenarioDefinition
             check.AddSquad(squad);
             foreach (var (id, at) in StartingPositions(squad, start, corridor))
             {
-                if (!world.World.Contains(at))
-                {
-                    var index = squad.Members.Select(m => m.UnitId).ToList().IndexOf(id);
-                    throw Error($"$.squad.members[{index}]", $"'{id}' would start off the map, at {at}.");
-                }
+                var index = squad.Members.Select(m => m.UnitId).ToList().IndexOf(id);
+                CheckPosition(world, at, $"$.squad.members[{index}]", $"the starting slot of '{id}'");
             }
         }
         catch (ArgumentException e)
         {
             throw new InvalidDataException($"$.squad: {e.Message}", e);
+        }
+    }
+
+    /// <summary>
+    /// Checks that a unit can stand at <paramref name="at"/>: on the map, on terrain infantry can move on (the rule
+    /// <see cref="Simulation.Issue"/> applies to a corridor order's start and end, so water and buildings fail).
+    /// </summary>
+    private static void CheckPosition(LoadedWorld world, Vec2 at, string path, string what)
+    {
+        if (!world.World.Contains(at))
+        {
+            throw Error(path, $"{what} at {at} is off the map.");
+        }
+
+        var terrain = world.World.ClassAt(at.X, at.Y);
+        if (MovementProfile.Infantry.BaseSpeed(terrain) <= 0)
+        {
+            throw Error(path, $"{what} at {at} is in impassable terrain ({terrain}).");
         }
     }
 
