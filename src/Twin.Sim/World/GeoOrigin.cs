@@ -25,4 +25,8 @@ public sealed record GeoOrigin(double Easting, double Northing)
 /// <summary>A world read from disk, with the origin that places it in ETRS-TM35FIN.</summary>
 /// <param name="World">The world in local meters.</param>
 /// <param name="Origin">Its south-west corner in ETRS-TM35FIN.</param>
-public sealed record LoadedWorld(RasterWorld World, GeoOrigin Origin);
+/// <param name="Attribution">
+/// The data attribution the source licence requires (the manifest's <c>attribution</c>), or null if it has none. It must
+/// be shown wherever the map is shown.
+/// </param>
+public sealed record LoadedWorld(RasterWorld World, GeoOrigin Origin, string? Attribution = null);

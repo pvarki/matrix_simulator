@@ -53,7 +53,12 @@ public static class WorldFiles
             classes[i] = (TerrainClass)classBytes[i];
         }
 
-        return new LoadedWorld(new RasterWorld(columns, rows, cellSize, heights, classes, ReadCliffs(directory, root)), geoOrigin);
+        // A missing key and JSON null both mean the world has no attribution.
+        var attribution = root.TryGetProperty("attribution", out var text) && text.ValueKind != JsonValueKind.Null
+            ? text.GetString()
+            : null;
+        return new LoadedWorld(
+            new RasterWorld(columns, rows, cellSize, heights, classes, ReadCliffs(directory, root)), geoOrigin, attribution);
     }
 
     /// <summary>Cliff lines from the manifest's optional <c>cliffs</c> entry (docs/adr/0010); none without it.</summary>
