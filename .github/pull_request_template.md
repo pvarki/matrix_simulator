@@ -9,7 +9,7 @@
 
 ## Checklist (definition of done, AGENTS.md)
 - [ ] Tests were written first and reviewed by a person before implementation
-- [ ] No existing test was weakened (tolerances, timeouts, removed assertions); if one changed, explain why
+- [ ] No existing test was weakened (tolerances, timeouts, removed assertions); if one changed, explain why, and the commit carries a `Test-change-approved-by: <name>` line
 - [ ] `./dev check` passes locally
 - [ ] No architecture rule needed an exception (or an ADR explains it)
 - [ ] Docs / AGENTS.md / ADRs updated if behaviour, commands or conventions changed

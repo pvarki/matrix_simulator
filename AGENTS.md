@@ -19,6 +19,7 @@ The world model is 2.5D: one ground height per map position (ADR 0004).
 | Format code | `./dev format` |
 | Show TDD phase | `./dev phase` |
 | Headless demo | `./dev run -- --seconds 60` |
+| Check commits for unapproved test edits (CI runs it) | `./dev test-edits` |
 | Acceptance tests on real map data only | `./dev smoke` |
 | Run a scenario and replay its event log | `./dev replay st1 --answer Grant --every 60` |
 | Watch that replay on the map in Godot | `./dev replay st1 --godot` |
@@ -49,6 +50,8 @@ The TDD phase is set by a human with `./dev phase spec|implement`. Hooks enforce
    This is the most important step: the tests are the specification.
 3. **Implement phase** (`./dev phase implement`): make the tests pass with the simplest code in `src/`.
    Existing test files are locked; new test files (e.g. for edge cases you discover) are allowed.
+   Changing an existing test outside a `test:` commit needs a `Test-change-approved-by: <name>` line in the
+   commit message; CI checks it.
 4. **Refactor** with tests green. Run `./dev check`.
 5. **Pull request:** small, linked to its ticket, CI green, one human review.
 
