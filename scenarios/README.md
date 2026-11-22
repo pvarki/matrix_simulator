@@ -44,6 +44,8 @@ with Git LFS (`.gitattributes`); run `git lfs install` once per machine.
 ```
 
 `origin` is the south-west corner of the area in ETRS-TM35FIN. Local coordinates are meters east and north of it.
+`crs` must be `EPSG:3067`. Every layer and cliff `file` must be a relative path inside the world directory (no
+`..`). A layer that is still a Git LFS pointer fails with a message that says so.
 
 ## Terrain class codes (`maastoluokka.bin`)
 
