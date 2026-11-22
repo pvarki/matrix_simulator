@@ -51,4 +51,21 @@ internal sealed class EdgeLine(
 
     /// <summary>The members that have acted on the command (the leader at once).</summary>
     public SortedSet<string> Acted { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>Adds every field to the state hash.</summary>
+    public void AddTo(StateHasher hash)
+    {
+        hash.Add(Command);
+        hash.Add(LeaderAt);
+        hash.Add(Outward);
+        hash.AddAll(Spots, spot =>
+        {
+            hash.Add(spot.Key);
+            hash.Add(spot.Value);
+        });
+        hash.Add(HalfWidth);
+        hash.Add(LeftEnd);
+        hash.Add(RightEnd);
+        hash.AddAll(Acted, hash.Add);
+    }
 }
