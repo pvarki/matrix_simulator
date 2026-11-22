@@ -332,7 +332,8 @@ public sealed class SquadFollowSystem : ISimSystem
         while (remaining > 0 && next < route.Count)
         {
             var target = route[next];
-            var speed = SegmentSpeed(simulation, profile, route[next - 1], target) * member.SpeedFactor;
+            var speed = (simulation.Terrain is IWorldQuery world ? profile.SegmentSpeed(world, route[next - 1], target) : profile.OpenMps) *
+                member.SpeedFactor;
             var needed = position.DistanceTo(target) / speed;
             if (needed <= remaining)
             {
@@ -528,21 +529,5 @@ public sealed class SquadFollowSystem : ISimSystem
         }
 
         return centers.OrderBy(c => c.DistanceTo(point)).ThenBy(c => c.Y).ThenBy(c => c.X);
-    }
-
-    /// <summary>Speed along a move: the mean of the two cells' base speeds times the slope factor (as the corridor system).</summary>
-    private static double SegmentSpeed(Simulation simulation, MovementProfile profile, Vec2 a, Vec2 b)
-    {
-        if (simulation.Terrain is not IWorldQuery world)
-        {
-            return profile.OpenMps;
-        }
-
-        var sa = profile.BaseSpeed(world.ClassAt(a.X, a.Y));
-        var sb = profile.BaseSpeed(world.ClassAt(b.X, b.Y));
-        var baseSpeed = sa > 0 && sb > 0 ? (sa + sb) / 2 : Math.Max(sa, sb);
-        var length = a.DistanceTo(b);
-        var slope = length > 0 ? (world.GroundHeight(b.X, b.Y) - world.GroundHeight(a.X, a.Y)) / length : 0;
-        return Math.Max(baseSpeed * profile.SlopeSpeedFactor(slope), 0.01);
     }
 }

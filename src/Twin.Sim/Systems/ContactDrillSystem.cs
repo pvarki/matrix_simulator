@@ -200,7 +200,7 @@ public sealed class ContactDrillSystem : ISimSystem
         while (remaining > 0 && drill.Next < drill.Route.Count)
         {
             var target = drill.Route[drill.Next];
-            var speed = Speed(world, profile, position, target) * unit.SpeedFactor;
+            var speed = profile.SegmentSpeed(world, position, target) * unit.SpeedFactor;
             var needed = position.DistanceTo(target) / speed;
             if (needed <= remaining)
             {
@@ -227,17 +227,6 @@ public sealed class ContactDrillSystem : ISimSystem
         unit.Velocity = (unit.Position - previous) * (1 / dt);
         CombatQueries.SetActivity(unit, UnitActivity.Moving);
         return false;
-    }
-
-    /// <summary>Walking speed between two points: the mean base speed of their terrain times the slope factor.</summary>
-    private static double Speed(IWorldQuery world, Movement.MovementProfile profile, Vec2 a, Vec2 b)
-    {
-        var sa = profile.BaseSpeed(world.ClassAt(a.X, a.Y));
-        var sb = profile.BaseSpeed(world.ClassAt(b.X, b.Y));
-        var baseSpeed = sa > 0 && sb > 0 ? (sa + sb) / 2 : Math.Max(sa, sb);
-        var length = a.DistanceTo(b);
-        var slope = length > 0 ? (world.GroundHeight(b.X, b.Y) - world.GroundHeight(a.X, a.Y)) / length : 0;
-        return Math.Max(baseSpeed * profile.SlopeSpeedFactor(slope), 0.01);
     }
 
     private static void Enter(Simulation simulation, Unit unit, ContactDrillStage stage)

@@ -40,10 +40,22 @@ public sealed record MovementProfile(
     };
 
     /// <summary>
+    /// The slowest speed a move between two points gets, m/s. It keeps the travel time finite on a move between two
+    /// impassable cells, where the mean base speed is 0. The pathfinder does not need it: it only expands cells with a
+    /// base speed above 0.
+    /// </summary>
+    public const double MinimumSpeedMps = 0.01;
+
+    // Tobler's hiking function: speed falls off as exp(−ToblerDecay · |S + ToblerOffset|).
+    private const double ToblerDecay = 3.5;
+    private const double ToblerOffset = 0.05;
+
+    /// <summary>
     /// Relative speed on a slope from Tobler's hiking function, 1 on flat ground: exp(−3.5|S + 0.05|) / exp(−3.5 · 0.05),
     /// where S is dz/ds in the direction of travel, uphill positive.
     /// </summary>
-    public static double SlopeFactor(double slope) => Math.Exp((-3.5 * Math.Abs(slope + 0.05)) + (3.5 * 0.05));
+    public static double SlopeFactor(double slope) =>
+        Math.Exp((-ToblerDecay * Math.Abs(slope + ToblerOffset)) + (ToblerDecay * ToblerOffset));
 
     /// <summary>
     /// Speed along a move with this slope, for this profile: the slope factor with the slope clamped to the limit, so a
@@ -52,7 +64,22 @@ public sealed record MovementProfile(
     public double SlopeSpeedFactor(double slope) => SlopeFactor(Math.Clamp(slope, -MaxSlope, MaxSlope));
 
     /// <summary>Largest value <see cref="SlopeFactor"/> can take (at a gentle 5 % descent).</summary>
-    public static double MaxSlopeFactor => SlopeFactor(-0.05);
+    public static double MaxSlopeFactor => SlopeFactor(-ToblerOffset);
+
+    /// <summary>
+    /// Walking speed for a move from <paramref name="a"/> to <paramref name="b"/>: the mean base speed of the two
+    /// points' terrain (the passable one's alone if only one is passable) times <see cref="SlopeSpeedFactor"/>, and at
+    /// least <see cref="MinimumSpeedMps"/>. The pathfinder's arc speed follows the same rule, without the floor.
+    /// </summary>
+    public double SegmentSpeed(IWorldQuery world, Vec2 a, Vec2 b)
+    {
+        var sa = BaseSpeed(world.ClassAt(a.X, a.Y));
+        var sb = BaseSpeed(world.ClassAt(b.X, b.Y));
+        var baseSpeed = sa > 0 && sb > 0 ? (sa + sb) / 2 : Math.Max(sa, sb);
+        var length = a.DistanceTo(b);
+        var slope = length > 0 ? (world.GroundHeight(b.X, b.Y) - world.GroundHeight(a.X, a.Y)) / length : 0;
+        return Math.Max(baseSpeed * SlopeSpeedFactor(slope), MinimumSpeedMps);
+    }
 }
 
 /// <summary>What a path search must respect.</summary>

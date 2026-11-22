@@ -308,7 +308,7 @@ public sealed class CorridorMovementSystem : ISimSystem
         while (remaining > 0 && progress.Next < route.Count)
         {
             var target = route[progress.Next];
-            var speed = SegmentSpeed(world, profile, route[progress.Next - 1], target) * unit.SpeedFactor;
+            var speed = profile.SegmentSpeed(world, route[progress.Next - 1], target) * unit.SpeedFactor;
             var distance = position.DistanceTo(target);
             var needed = distance / speed;
             if (needed <= remaining)
@@ -352,17 +352,6 @@ public sealed class CorridorMovementSystem : ISimSystem
             unit.Velocity = (unit.Position - previous) * (1 / dt);
             CombatQueries.SetActivity(unit, UnitActivity.Moving);
         }
-    }
-
-    /// <summary>The speed along a route segment: the same rule as the pathfinder's arc speed.</summary>
-    private static double SegmentSpeed(IWorldQuery world, MovementProfile profile, Vec2 a, Vec2 b)
-    {
-        var sa = profile.BaseSpeed(world.ClassAt(a.X, a.Y));
-        var sb = profile.BaseSpeed(world.ClassAt(b.X, b.Y));
-        var baseSpeed = sa > 0 && sb > 0 ? (sa + sb) / 2 : Math.Max(sa, sb);
-        var length = a.DistanceTo(b);
-        var slope = length > 0 ? (world.GroundHeight(b.X, b.Y) - world.GroundHeight(a.X, a.Y)) / length : 0;
-        return Math.Max(baseSpeed * profile.SlopeSpeedFactor(slope), 0.01);
     }
 }
 
