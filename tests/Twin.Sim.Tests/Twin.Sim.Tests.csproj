@@ -12,6 +12,9 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Core/Data/event-log-v1.jsonl" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../../src/Twin.Sim/Twin.Sim.csproj" />
     <ProjectReference Include="../Twin.Testing/Twin.Testing.csproj" />
   </ItemGroup>

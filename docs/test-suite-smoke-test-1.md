@@ -303,7 +303,7 @@ position, then wait for the leader's orders.
 | D3b **[v3]** | The drill stage and waiting state rebuilt from the log match the live state. | Covered | `D4_suppression_drill_stage_and_waiting_rebuilt_from_the_log_match_the_live_state` |
 | D4 | The whole simulation state is identical at every tick for the same scenario; the fingerprint changes when the world changes. | Covered | `Same_scenario_and_orders_produce_identical_state_every_tick`, `State_hash_changes_when_the_world_changes` |
 | D5 | The random generator repeats for the same seed, differs for others, gives a known first value, and stays between 0 and 1. | Covered | `DeterministicRandomTests` (4) |
-| D6 | Every event type survives writing to the log and reading back. | Missing (**new**) | Only a bad line (`A_malformed_log_line_is_reported_as_invalid_data`) and the replay time (`Replay_at_a_literal_time_…`) are tested directly. |
+| D6 | Every event type survives writing to the log and reading back. | Covered | `EventLogContractTests`: the golden v1 log (`Core/Data/event-log-v1.jsonl`) reads and writes back byte for byte, replays to a known snapshot and contains every event type (ADR 0014). |
 | D7 | A combat fight on the real map gives identical logs twice and replays correctly. | Missing (**new**) | D1 and D3 use small test maps. |
 
 ## 8. Structure and data rules
