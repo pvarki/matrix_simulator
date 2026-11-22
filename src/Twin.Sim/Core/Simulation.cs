@@ -20,7 +20,7 @@ namespace Twin.Sim;
 public sealed class Simulation
 {
     private readonly SortedDictionary<string, Unit> _units = new(StringComparer.Ordinal);
-    private readonly List<(string UnitId, Order Order)> _pendingOrders = [];
+    private readonly OrderSystem _orders = new();
     private readonly IReadOnlyList<ISimSystem> _systems;
     private readonly List<SimEvent> _events = [];
     private readonly SortedDictionary<string, AgentSnapshot> _logged = new(StringComparer.Ordinal);
@@ -37,10 +37,11 @@ public sealed class Simulation
         Config = config ?? new SimulationConfig();
         Random = new DeterministicRandom(Config.Seed);
 
-        // System order is part of the simulation's behaviour. Change it deliberately.
+        // System order is part of the simulation's behaviour (ADR 0013, pinned by SystemOrderTests). Change it
+        // deliberately. Orders apply first: _orders is the instance Issue queues to.
         _systems =
         [
-            new CombatStatusSystem(), new SquadFollowSystem(), new SquadCohesionSystem(), new MovementSystem(),
+            _orders, new CombatStatusSystem(), new SquadFollowSystem(), new SquadCohesionSystem(), new MovementSystem(),
             new CorridorMovementSystem(), new ContactDrillSystem(), new SpottingSystem(), new SpotReportSystem(),
             new FireSystem(), new SquadSystem(), new ObservationSystem(),
         ];
@@ -202,102 +203,19 @@ public sealed class Simulation
     {
         ArgumentNullException.ThrowIfNull(order);
         OrderValidator.Validate(this, unitId, order);
-        _pendingOrders.Add((unitId, order));
+        _orders.Enqueue(unitId, order);
     }
 
     /// <summary>Advances the simulation by exactly one tick.</summary>
     public void Step()
     {
         Tick++;
-        foreach (var (unitId, order) in _pendingOrders)
-        {
-            var unit = _units[unitId];
-            if (order is not (SetPosture or SetSquadPosture) && !(order is Rejoin && SquadOf(unitId)?.IsFollowing(unitId) == true))
-            {
-                ContactDrillSystem.End(this, unit);    // any new order ends the drill under fire
-                ContactDrillSystem.Answer(unit);       // and the leader's order stands against the fire it answers
-            }
-
-            if (order is not Rejoin && SquadOf(unitId) is { } detachedFrom && detachedFrom.LeaderId != unitId)
-            {
-                detachedFrom.Detach(unitId); // any order straight to a member takes it out of the squad's movement
-            }
-
-            if (order is not (SetPosture or SetSquadPosture or SetSquadFormation) && SquadOf(unitId) is { } waiting &&
-                waiting.LeaderId == unitId)
-            {
-                waiting.OrderRequestedAt = null; // an order of its own replaces asking for the old one
-            }
-
-            switch (order)
-            {
-                case SetPosture posture:
-                    CombatQueries.WantPosture(unit, posture.Posture); // keeps the current order
-                    break;
-                case CeaseFire:
-                    if (unit.CurrentOrder is FireAt)
-                    {
-                        CombatQueries.EndOrder(unit);
-                    }
-
-                    break;
-                case SetSquadPosture or SetSquadFormation when SquadOf(unitId) is { } squad && squad.LeaderId == unitId:
-                    SquadSystem.Command(this, squad, unit, order); // keeps the current order
-                    break;
-                case SetSquadPosture or SetSquadFormation:
-                    break; // the unit lost command of its squad after the order was issued
-                case ResumeMovement when SquadOf(unitId) is { } squad && squad.LeaderId == unitId:
-                    SquadAlerts.Resume(this, squad, unit);
-                    break;
-                case ResumeMovement:
-                    break; // the unit lost command of its squad after the order was issued
-                case Rejoin when SquadOf(unitId) is { } squad && !squad.IsFollowing(unitId):
-                    CombatQueries.EndOrder(unit);
-                    StandDown(unit);
-                    squad.Rejoin(unitId);
-                    break;
-                case Rejoin:
-                    break; // already following
-                case Watch watch:
-                    CombatQueries.EndOrder(unit); // stops, as with Stop
-                    StandDown(unit);
-                    unit.WatchDirection = watch.Direction.Normalized();
-                    unit.HoldsWatch = true;
-                    break;
-                default:
-                    CombatQueries.EndOrder(unit);
-                    StandDown(unit);
-                    unit.CurrentOrder = order is Stop ? null : order;
-                    if (order is MoveTo or MoveThroughCorridor && SquadOf(unitId) is { } led && led.LeaderId == unitId)
-                    {
-                        SquadAlerts.Resume(this, led, unit, newOrder: order); // a new movement order ends a halt (S5a1)
-                        led.StartAfresh();
-                        led.NewMovementOrder(order, unitId);
-                        SquadSystem.Command(this, led, unit, order); // the leader briefs its squad (backlog 0004, S2b)
-                    }
-
-                    break;
-            }
-        }
-
-        _pendingOrders.Clear();
         foreach (var system in _systems)
         {
             system.Update(this, Config.TickSeconds);
         }
 
         LogStateChanges();
-    }
-
-    /// <summary>
-    /// A new order for the unit itself ends what it did on knowing of an enemy (backlog 0004 S5a1): it no longer stands
-    /// still for it nor watches it.
-    /// </summary>
-    private static void StandDown(Unit unit)
-    {
-        unit.IsAlerted = false;
-        unit.WatchTarget = null;
-        unit.HoldsWatch = false;
     }
 
     /// <summary>Adds an event to the log. Systems call this; the time is the current simulated time.</summary>
