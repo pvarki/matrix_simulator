@@ -152,4 +152,40 @@ public class EventLogContractTests
         Assert.False(Assert.IsType<SuppressionStarted>(events[1]).Heavy);
         Assert.Equal(SquadFormation.File, Assert.IsType<SquadFormed>(events[2]).Formation);
     }
+
+    [Fact]
+    public void A_point_with_too_few_coordinates_is_reported_as_invalid_data()
+    {
+        var line = "{\"v\":1,\"type\":\"AgentMoved\",\"time\":1,\"agent\":\"blue1\",\"position\":[1,2]}\n";
+
+        Assert.Throws<InvalidDataException>(() => EventLog.FromJsonLines(line));
+    }
+
+    [Fact]
+    public void A_sector_with_too_few_numbers_is_reported_as_invalid_data()
+    {
+        var line = "{\"v\":1,\"type\":\"WatchChanged\",\"time\":1,\"agent\":\"blue1\",\"direction\":[0,1],\"sectors\":[[1,2]],\"air\":false}\n";
+
+        Assert.Throws<InvalidDataException>(() => EventLog.FromJsonLines(line));
+    }
+
+    [Fact]
+    public void Writing_a_non_finite_number_names_the_event_and_the_field()
+    {
+        SimEvent[] moved = [new AgentPlaced(0, "blue1", new Vec3(0, 0, 0)), new AgentMoved(1, "blue1", new Vec3(double.NaN, 0, 0))];
+        SimEvent[] planned = [new PathPlanned(1, "blue1", [new Vec2(0, 0)], double.PositiveInfinity)];
+
+        var movedError = Assert.Throws<ArgumentException>(() => EventLog.ToJsonLines(moved));
+        var plannedError = Assert.Throws<ArgumentException>(() => EventLog.ToJsonLines(planned));
+
+        foreach (var expected in new[] { "AgentMoved", "position", "event 1", "finite" })
+        {
+            Assert.Contains(expected, movedError.Message, StringComparison.Ordinal);
+        }
+
+        foreach (var expected in new[] { "PathPlanned", "cost", "event 0", "finite" })
+        {
+            Assert.Contains(expected, plannedError.Message, StringComparison.Ordinal);
+        }
+    }
 }
