@@ -64,3 +64,24 @@ jobs:
       - name: Run tests in container (limit 60 s)
         timeout-minutes: 1
         run: docker run --rm twin-test
+
+  # Test-first commits (docs/workflow.md): a commit that is not "test: ..." must not modify or delete existing tests
+  # unless its message has a "Test-change-approved-by: <name>" line. Needs the full history and git 2.38 or later.
+  test-edits:
+    name: test edits need a test commit or approval
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Check commits for unapproved test edits
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: dotnet run tools/check-test-edits.cs -- "$BASE" "$HEAD_SHA"

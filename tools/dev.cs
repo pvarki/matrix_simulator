@@ -15,6 +15,9 @@
 //                     ./dev replay st1-combat runs a built-in fire fight on st1 instead of a scenario
 //                     (./dev replay st1-ambush is a scenario file: a squad through the st1 corridor into an ambush)
 //   ./dev smoke       run only the acceptance tests on real map data (Smoke test I), with test output
+//   ./dev test-edits [base] [head]  fail if a commit that is not "test: ..." edits existing tests without a
+//                     Test-change-approved-by: line (the CI check; tools/check-test-edits.cs). base defaults to
+//                     origin/main; pass upstream/main if you work from a fork
 //   ./dev docker-test run the core test suite in a clean Linux container and report the time (needs Docker)
 //   ./dev prep <cmd>  run a command in the map preprocessing container (Python + GDAL, needs Docker)
 using System.Diagnostics;
@@ -33,6 +36,7 @@ return command switch
     "run" => Run("dotnet", ["run", "--project", "src/Twin.Headless", "--", .. rest]),
     "replay" => Replay(rest),
     "smoke" => Run("dotnet", ["test", "tests/Twin.Acceptance.Tests", "--nologo", "--logger", "console;verbosity=detailed", .. rest]),
+    "test-edits" => Run("dotnet", ["run", "tools/check-test-edits.cs", "--", .. rest]),
     "docker-test" => DockerTest(),
     "prep" => Prep(rest),
     _ => Help(),
@@ -314,7 +318,7 @@ int Phase(string[] a)
 
 int Help()
 {
-    Console.WriteLine("Usage: ./dev <setup|test|check|format|phase|run|replay|smoke|docker-test|prep>  (see tools/dev.cs for details)");
+    Console.WriteLine("Usage: ./dev <setup|test|check|format|phase|run|replay|smoke|test-edits|docker-test|prep>  (see tools/dev.cs for details)");
     return 1;
 }
 
