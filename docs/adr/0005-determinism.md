@@ -8,7 +8,8 @@ TDD needs reproducible results: a test that sometimes fails is worthless. Replay
 lockstep multiplayer need the same.
 
 ## Decision
-- Time advances only through `Simulation.Step()`, a fixed tick (default 20 Hz) independent of frame rate.
+- Time advances only through `Simulation.Step()`, a fixed tick (default 20 Hz) independent of frame rate. Scenario
+  files and the spec tests use 2 Hz (spec v0.1 dt = 0.5 s). A timer resolves to the first tick at or after it is due.
 - Orders are validated when issued and applied at the start of the next tick, in issue order.
 - All randomness comes from `Simulation.Random` (SplitMix64, seeded from `SimulationConfig.Seed`).
   `System.Random` is banned because its algorithm may change between .NET versions.
