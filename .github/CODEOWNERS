@@ -1,0 +1,19 @@
+# Code owners: GitHub asks them to review changes to these paths. The list mirrors .claude/human-only (the harness,
+# build and solution files), plus tests/ (the specification gets a second reader), docker/ (the docker-test gate)
+# and .github/ (CI and this file).
+# DECISION NEEDED: name a second owner with write access, or a @pvarki/<team>. Until then, keep "Require review from Code Owners" off.
+/tests/ @muzard
+/AGENTS.md @muzard
+/CLAUDE.md @muzard
+/.claude/ @muzard
+/tools/ @muzard
+/dev @muzard
+/dev.cmd @muzard
+/Directory.Build.props @muzard
+/Directory.Packages.props @muzard
+/Twin.sln @muzard
+/Twin.Core.slnf @muzard
+/.editorconfig @muzard
+/global.json @muzard
+/docker/ @muzard
+/.github/ @muzard
