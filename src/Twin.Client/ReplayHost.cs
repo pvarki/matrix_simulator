@@ -5,6 +5,7 @@ using Twin.Sim.Corridors;
 using Twin.Sim.Events;
 using Twin.Sim.Geometry;
 using Twin.Sim.Scenarios;
+using Twin.Sim.Squads;
 using Twin.Sim.World;
 
 namespace Twin.Client;
@@ -47,7 +48,7 @@ public partial class ReplayHost : Node2D
         AddChild(hud);
         _status = HudLabel(hud, new Vector2(12, 8));
 
-        if (!TryLoad(out var world, out var corridor, out var title, out var attribution, out var error))
+        if (!TryLoad(out var world, out var corridor, out var title, out var attribution, out var voiceRange, out var error))
         {
             _status.Text = $"{error}\n\nUsage: ./dev replay <scenario> --godot\n   or: godot --path src/Twin.Client res://Replay.tscn -- --scenario <dir> --log <file.jsonl>";
             return;
@@ -59,7 +60,7 @@ public partial class ReplayHost : Node2D
         // One pixel per meter; the camera zoom fits the map to the window (LayoutHud).
         _mapper = new CoordinateMapper(world.WidthMeters, world.DepthMeters, pixelsPerMeter: 1f);
         AddChild(new MapView(world, _mapper));
-        _layer = new ReplayLayer(_events, corridor, world, _mapper);
+        _layer = new ReplayLayer(_events, corridor, world, _mapper, voiceRange);
         AddChild(_layer);
 
         _focus = Focus(world, corridor);
@@ -182,12 +183,18 @@ public partial class ReplayHost : Node2D
     }
 
     private bool TryLoad(
-        out RasterWorld world, out Corridor? corridor, out string title, out string? attribution, out string error)
+        out RasterWorld world,
+        out Corridor? corridor,
+        out string title,
+        out string? attribution,
+        out double voiceRange,
+        out string error)
     {
         world = null!;
         corridor = null;
         title = string.Empty;
         attribution = null;
+        voiceRange = SquadDoctrine.Default.VoiceRangeMeters;
         var args = OS.GetCmdlineUserArgs();
         var scenarioDir = Option(args, "--scenario");
         var logFile = Option(args, "--log");
@@ -209,6 +216,8 @@ public partial class ReplayHost : Node2D
                 ? _events.OfType<SquadFormed>().Any(f => f.SquadId == squad.Id)
                 : _events.Any(e => e.AgentId == scenario.AgentId);
             corridor = ofThisScenario ? scenario.Corridor : null;
+            // A demo log such as the combat demo was not run with this scenario's squad doctrine.
+            voiceRange = ofThisScenario ? scenario.SquadDoctrine.VoiceRangeMeters : SquadDoctrine.Default.VoiceRangeMeters;
             title = $"{Path.GetFileName(logFile)} on {Path.GetFileName(Path.TrimEndingDirectorySeparator(scenarioDir))}";
             error = string.Empty;
             return true;

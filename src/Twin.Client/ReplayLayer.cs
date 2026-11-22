@@ -26,9 +26,6 @@ public partial class ReplayLayer : Node2D
     // How far a watch sector is drawn from its agent.
     private const double SectorMeters = 25;
 
-    // The voice range a spot report is shown with: the simulation's own rule (backlog 0004 S5a1), not a copy of it.
-    private static readonly double VoiceMeters = Twin.Sim.Squads.SquadDoctrine.Default.VoiceRangeMeters;
-
     private static readonly Color BlueSide = new(0.15f, 0.4f, 1f);
     private static readonly Color RedSide = new(0.9f, 0.12f, 0.12f);
     private static readonly Color NoSide = new(0.35f, 0.35f, 0.35f);
@@ -38,18 +35,26 @@ public partial class ReplayLayer : Node2D
     private readonly RasterWorld _world = null!;
     private readonly CoordinateMapper _mapper = null!;
 
+    // The voice range a spot report is shown with: the run's own squad doctrine (backlog 0004 S5a1), not a copy of it.
+    private readonly double _voiceMeters;
+
     /// <summary>Required by Godot. Not used directly.</summary>
     public ReplayLayer()
     {
     }
 
-    /// <summary>Creates the layer for a log recorded on <paramref name="world"/>.</summary>
-    public ReplayLayer(IReadOnlyList<SimEvent> events, Corridor? corridor, RasterWorld world, CoordinateMapper mapper)
+    /// <summary>
+    /// Creates the layer for a log recorded on <paramref name="world"/> with a squad voice range of
+    /// <paramref name="voiceRangeMeters"/>.
+    /// </summary>
+    public ReplayLayer(
+        IReadOnlyList<SimEvent> events, Corridor? corridor, RasterWorld world, CoordinateMapper mapper, double voiceRangeMeters)
     {
         _events = events;
         _corridor = corridor;
         _world = world;
         _mapper = mapper;
+        _voiceMeters = voiceRangeMeters;
     }
 
     /// <summary>The state to draw, rebuilt from the log by <see cref="EventReplay"/>.</summary>
@@ -110,7 +115,7 @@ public partial class ReplayLayer : Node2D
                     DrawDashedLine(_mapper.ToScreen(eye), _mapper.ToScreen(spotted.EnemyPosition), SideColor(sides.GetValueOrDefault(e.AgentId)), 1.5f, 6f);
                     break;
                 case SpotReported report when time - e.Time <= SightingVisibleSeconds && positions.TryGetValue(e.AgentId, out var speaker):
-                    DrawArc(_mapper.ToScreen(speaker), _mapper.ToScreenLength(VoiceMeters), 0, Mathf.Tau, 48,
+                    DrawArc(_mapper.ToScreen(speaker), _mapper.ToScreenLength(_voiceMeters), 0, Mathf.Tau, 48,
                         SideColor(sides.GetValueOrDefault(e.AgentId)) with { A = 0.6f }, 1.5f);
                     break;
                 case CasualtyOccurred casualty:
