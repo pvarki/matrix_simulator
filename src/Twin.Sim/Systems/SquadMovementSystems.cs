@@ -103,7 +103,7 @@ public sealed class SquadCohesionSystem : ISimSystem
 
         if (request.LeaderAskedAt is not { } askedAt)
         {
-            if (now >= request.AskedAt + simulation.Config.SquadDoctrine.RelaySeconds - 1e-9)
+            if (now >= request.AskedAt + simulation.Config.SquadDoctrine.RelaySeconds - CombatQueries.TimeEpsilon)
             {
                 if (squad.Permits.Any(p => p.Covers(request.BoundaryId, request.At)))
                 {
@@ -123,7 +123,7 @@ public sealed class SquadCohesionSystem : ISimSystem
         var timeout = simulation.Config.Permission.TimeoutSeconds;
         var waited = now - askedAt;
         if (platoonLeader is { Answer: not Command.LeaderAnswer.NoAnswer } && platoonLeader.DelaySeconds <= timeout &&
-            waited >= platoonLeader.DelaySeconds - 1e-9)
+            waited >= platoonLeader.DelaySeconds - CombatQueries.TimeEpsilon)
         {
             simulation.Log(new PermissionAnswered(now, leaderId, request.BoundaryId, platoonLeader.Answer));
             if (platoonLeader.Answer == Command.LeaderAnswer.Grant)
@@ -137,7 +137,7 @@ public sealed class SquadCohesionSystem : ISimSystem
 
             squad.PendingRequest = null;
         }
-        else if (waited >= timeout - 1e-9)
+        else if (waited >= timeout - CombatQueries.TimeEpsilon)
         {
             simulation.Log(new PermissionTimedOut(now, leaderId, request.BoundaryId));
             squad.Refuse(request.BoundaryId);

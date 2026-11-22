@@ -25,9 +25,6 @@ namespace Twin.Sim.Systems;
 /// </summary>
 public sealed class CorridorMovementSystem : ISimSystem
 {
-    /// <summary>Tolerance when comparing simulated times computed in different ways.</summary>
-    private const double TimeEpsilon = 1e-9;
-
     /// <inheritdoc />
     public void Update(Simulation simulation, double dtSeconds)
     {
@@ -103,7 +100,7 @@ public sealed class CorridorMovementSystem : ISimSystem
         var boundary = progress.Request!.BoundaryId;
 
         if (leader is { Answer: not LeaderAnswer.NoAnswer } && leader.DelaySeconds <= timeout &&
-            waited >= leader.DelaySeconds - TimeEpsilon)
+            waited >= leader.DelaySeconds - CombatQueries.TimeEpsilon)
         {
             simulation.Log(new PermissionAnswered(now, unit.Id, boundary, leader.Answer));
             if (leader.Answer == LeaderAnswer.Grant)
@@ -124,7 +121,7 @@ public sealed class CorridorMovementSystem : ISimSystem
 
             Plan(simulation, world, unit, profile, progress);
         }
-        else if (waited >= timeout - TimeEpsilon)
+        else if (waited >= timeout - CombatQueries.TimeEpsilon)
         {
             simulation.Log(new PermissionTimedOut(now, unit.Id, boundary));
             progress.Refused = true;
@@ -262,7 +259,7 @@ public sealed class CorridorMovementSystem : ISimSystem
             simulation.Log(new EdgeDeployed(simulation.TimeSeconds, unit.Id, squad.Id));
             Request(simulation, unit, progress, crossing);
         }
-        else if (simulation.TimeSeconds >= progress.DeploymentCommandedAt + simulation.Config.SquadDoctrine.EdgeDeploymentSeconds - TimeEpsilon)
+        else if (simulation.TimeSeconds >= progress.DeploymentCommandedAt + simulation.Config.SquadDoctrine.EdgeDeploymentSeconds - CombatQueries.TimeEpsilon)
         {
             Request(simulation, unit, progress, crossing);
         }
