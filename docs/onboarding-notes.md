@@ -64,4 +64,5 @@ stopping.
 `BeSuppressed()`, `HaveHealth(health)`, `BeIn(posture)` and `HaveNoOrder()`. An agent that uses the skill
 does not know about them, or must read `tests/Twin.Testing/UnitAssertions.cs` to find them.
 
-**Fix:** open. The skill is part of the AI harness, which only a human changes. Fix it in a separate PR.
+**Fix (resolved):** the skill points to the assertion files instead of listing them (review follow-up,
+pvarki/markdown-projectmatrix-pm#72).
