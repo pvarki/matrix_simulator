@@ -137,13 +137,13 @@ public sealed record CombatRules(
 /// <param name="HitProbabilityAtZero">Hit probability at zero range in the open against a standing target.</param>
 /// <param name="HitFalloffMeters">P(hit) falls as exp(−d / this).</param>
 /// <param name="MaxRangeMeters">Beyond this, P(hit) is zero and the weapon is not fired.</param>
-/// <param name="SecondsPerShot">Time between aimed shots.</param>
+/// <param name="SecondsPerShot">Average time between aimed shots; at most one shot per tick.</param>
 /// <param name="Rounds">Rounds carried.</param>
 /// <param name="SoundRangeMeters">Shots are heard this far.</param>
 /// <param name="FlashSeconds">How long the muzzle flash makes the shooter easier to see; 0 for none.</param>
 /// <param name="SuppressionPerRound">S: how much a round passing close suppresses (calibre, crack, volume).</param>
 /// <param name="RoundsPerBurst">n: rounds in one shot event; 1 for a rifle.</param>
-/// <param name="SnapSecondsPerShot">Time between snap shots.</param>
+/// <param name="SnapSecondsPerShot">Average time between snap shots; at most one shot per tick.</param>
 /// <param name="Class">What kind of weapon it is, which a listener recognises by the sound (backlog 0004 S5a2).</param>
 public sealed record WeaponProfile(
     double HitProbabilityAtZero, double HitFalloffMeters, double MaxRangeMeters, double SecondsPerShot, int Rounds,
