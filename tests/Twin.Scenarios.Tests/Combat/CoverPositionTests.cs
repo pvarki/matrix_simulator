@@ -125,6 +125,41 @@ public class CoverPositionTests
     }
 
     [Fact]
+    public void CP4_cover_exactly_twenty_meters_away_is_within_reach()
+    {
+        // A 0.5 m ridge on the cell at x = 43 hides the ground right behind it from red; the first hidden grid point is
+        // (41, 21), exactly 20 m west of blue. The search radius includes its edge.
+        var world = Strip(m => m.WithRidge(fromX: 43, toX: 43, height: 0.5));
+        Vec2 blue = new(61, 21), red = new(161, 21);
+        var sim = Scenario.ForCombat().WithTerrain(world)
+            .WithFighter("blue", blue, Side.Blue, RulesOfEngagement.HoldFire)
+            .WithFighter("red", red, Side.Red, RulesOfEngagement.HoldFire)
+            .Build();
+
+        Assert.True(SeesProne(world, red, blue), "precondition: blue is exposed where it is");
+        Assert.True(SeesProne(world, red, new Vec2(43, 21)), "precondition: the ridge top is exposed");
+        Assert.False(SeesProne(world, red, new Vec2(41, 21)), "precondition: the ridge hides (41, 21)");
+
+        Assert.Equal(new Vec2(41, 21), sim.Simulation.FindCover("blue", "red"));
+    }
+
+    [Fact]
+    public void CP4_cover_twenty_two_meters_away_is_out_of_reach()
+    {
+        // As above, with the ridge one grid step farther west: the first hidden point is (39, 21), 22 m away.
+        var world = Strip(m => m.WithRidge(fromX: 41, toX: 41, height: 0.5));
+        Vec2 blue = new(61, 21), red = new(161, 21);
+        var sim = Scenario.ForCombat().WithTerrain(world)
+            .WithFighter("blue", blue, Side.Blue, RulesOfEngagement.HoldFire)
+            .WithFighter("red", red, Side.Red, RulesOfEngagement.HoldFire)
+            .Build();
+
+        Assert.False(SeesProne(world, red, new Vec2(39, 21)), "precondition: the ridge hides (39, 21)");
+
+        Assert.Null(sim.Simulation.FindCover("blue", "red"));
+    }
+
+    [Fact]
     public void CP5_a_position_behind_a_hard_boundary_is_not_chosen()
     {
         // The building's shadow (from x = 53) is across a road blue may not cross (an order boundary at x = 58).

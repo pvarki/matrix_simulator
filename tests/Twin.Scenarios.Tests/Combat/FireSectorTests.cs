@@ -71,6 +71,33 @@ public class FireSectorTests
         Assert.NotEmpty(sim.ShotsBy("blue"));
     }
 
+    // Edge pairs at ±0.5° on both sides of the line: an angle exactly on 30° is not exact in floating point, so it could
+    // not tell an inclusive edge from an exclusive one.
+    [Theory]
+    [InlineData(29.5, 50)]
+    [InlineData(-29.5, 50)]
+    public void LF1_a_friend_just_inside_thirty_degrees_blocks_fire(double degrees, double meters)
+    {
+        var sim = BlueEngagesRed(friend: At(degrees, meters), fireAtOrder: true);
+
+        sim.RunFor(TimeSpan.FromSeconds(30));
+
+        Assert.True(sim.Simulation.CanSee("blue", "red"), "precondition: blue sees red");
+        Assert.Empty(sim.ShotsBy("blue"));
+    }
+
+    [Theory]
+    [InlineData(30.5, 50)]
+    [InlineData(-30.5, 50)]
+    public void LF3_a_friend_just_outside_thirty_degrees_does_not(double degrees, double meters)
+    {
+        var sim = BlueEngagesRed(friend: At(degrees, meters), fireAtOrder: true);
+
+        sim.RunFor(TimeSpan.FromSeconds(10));
+
+        Assert.NotEmpty(sim.ShotsBy("blue"));
+    }
+
     [Fact]
     public void LF3_a_friend_beyond_the_weapons_range_does_not()
     {
