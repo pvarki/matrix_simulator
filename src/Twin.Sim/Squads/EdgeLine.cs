@@ -13,6 +13,8 @@ internal sealed record DeployAtForestEdge : Order
 {
     /// <inheritdoc />
     public override string ToString() => nameof(DeployAtForestEdge);
+
+    internal override void AddTo(StateHasher hash) => hash.Add(nameof(DeployAtForestEdge));
 }
 
 /// <summary>

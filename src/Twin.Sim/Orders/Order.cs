@@ -8,11 +8,22 @@ namespace Twin.Sim.Orders;
 /// Base type for everything a unit can be told to do. Orders are immutable data.
 /// They are validated when issued and take effect at the start of the next tick.
 /// </summary>
-public abstract record Order;
+public abstract record Order
+{
+    /// <summary>Adds the order's type and every field to the state hash.</summary>
+    internal abstract void AddTo(StateHasher hash);
+}
 
 /// <summary>Move along the ground to a map position. Height follows the terrain.</summary>
 /// <param name="Destination">Target map position in meters.</param>
-public sealed record MoveTo(Vec2 Destination) : Order;
+public sealed record MoveTo(Vec2 Destination) : Order
+{
+    internal override void AddTo(StateHasher hash)
+    {
+        hash.Add(nameof(MoveTo));
+        hash.Add(Destination);
+    }
+}
 
 /// <summary>
 /// Halt where the unit is (backlog 0001). On the next tick the current order ends, including a
@@ -20,7 +31,13 @@ public sealed record MoveTo(Vec2 Destination) : Order;
 /// It becomes idle on that tick, or, if it is in a combat state (suppressed, pinned, changing posture), once that
 /// state ends. Accepted for an idle unit, where it has no effect.
 /// </summary>
-public sealed record Stop : Order;
+public sealed record Stop : Order
+{
+    internal override void AddTo(StateHasher hash)
+    {
+        hash.Add(nameof(Stop));
+    }
+}
 
 /// <summary>
 /// Move through a corridor to its last centerline point (spec v0.1): plan a route that respects the corridor and its
@@ -31,6 +48,12 @@ public sealed record MoveThroughCorridor(Corridor Corridor) : Order
 {
     /// <summary>The agent's destination B.</summary>
     public Vec2 Destination => Corridor.Centerline[^1];
+
+    internal override void AddTo(StateHasher hash)
+    {
+        hash.Add(nameof(MoveThroughCorridor));
+        Corridor.AddTo(hash);
+    }
 }
 
 /// <summary>
@@ -38,17 +61,37 @@ public sealed record MoveThroughCorridor(Corridor Corridor) : Order
 /// (backlog 0002). Rejected for an unknown target, oneself or an agent on one's own side.
 /// </summary>
 /// <param name="TargetId">The enemy.</param>
-public sealed record FireAt(string TargetId) : Order;
+public sealed record FireAt(string TargetId) : Order
+{
+    internal override void AddTo(StateHasher hash)
+    {
+        hash.Add(nameof(FireAt));
+        hash.Add(TargetId);
+    }
+}
 
 /// <summary>Ends a <see cref="FireAt"/> order. Any other current order is kept.</summary>
-public sealed record CeaseFire : Order;
+public sealed record CeaseFire : Order
+{
+    internal override void AddTo(StateHasher hash)
+    {
+        hash.Add(nameof(CeaseFire));
+    }
+}
 
 /// <summary>
 /// Take a posture. Takes the rules' posture-change time, during which the agent neither moves nor shoots.
 /// The agent keeps its current order.
 /// </summary>
 /// <param name="Posture">The posture.</param>
-public sealed record SetPosture(Posture Posture) : Order;
+public sealed record SetPosture(Posture Posture) : Order
+{
+    internal override void AddTo(StateHasher hash)
+    {
+        hash.Add(nameof(SetPosture));
+        hash.Add((long)Posture);
+    }
+}
 
 /// <summary>
 /// A squad order (backlog 0004): the squad leader commands its squad to take a posture ("Maahan!"). Accepted only by the
@@ -56,7 +99,14 @@ public sealed record SetPosture(Posture Posture) : Order;
 /// (<see cref="Squads.SquadDoctrine"/>). Everyone keeps its current order.
 /// </summary>
 /// <param name="Posture">The posture.</param>
-public sealed record SetSquadPosture(Posture Posture) : Order;
+public sealed record SetSquadPosture(Posture Posture) : Order
+{
+    internal override void AddTo(StateHasher hash)
+    {
+        hash.Add(nameof(SetSquadPosture));
+        hash.Add((long)Posture);
+    }
+}
 
 /// <summary>
 /// A squad order (backlog 0004, S2a): the squad leader commands a formation. Accepted only by the leader of a squad. The
@@ -64,25 +114,51 @@ public sealed record SetSquadPosture(Posture Posture) : Order;
 /// current order.
 /// </summary>
 /// <param name="Formation">The formation.</param>
-public sealed record SetSquadFormation(Squads.SquadFormation Formation) : Order;
+public sealed record SetSquadFormation(Squads.SquadFormation Formation) : Order
+{
+    internal override void AddTo(StateHasher hash)
+    {
+        hash.Add(nameof(SetSquadFormation));
+        hash.Add((long)Formation);
+    }
+}
 
 /// <summary>
 /// Back to the squad (backlog 0004, S2a): a member detached from its squad's movement by an order given straight to it
 /// (any order but this one) ends that order and follows the squad again. Rejected for a squad leader and for an agent
 /// outside a squad; accepted for a member already following, where it changes nothing.
 /// </summary>
-public sealed record Rejoin : Order;
+public sealed record Rejoin : Order
+{
+    internal override void AddTo(StateHasher hash)
+    {
+        hash.Add(nameof(Rejoin));
+    }
+}
 
 /// <summary>
 /// Watch toward a direction (tähystä suuntaan; backlog 0004 S5a1): the agent stops, as with <see cref="Stop"/>, and
 /// watches <paramref name="Direction"/> (any length) until something else turns it. Rejected for a zero direction.
 /// </summary>
 /// <param name="Direction">Where to watch, in map coordinates.</param>
-public sealed record Watch(Vec2 Direction) : Order;
+public sealed record Watch(Vec2 Direction) : Order
+{
+    internal override void AddTo(StateHasher hash)
+    {
+        hash.Add(nameof(Watch));
+        hash.Add(Direction);
+    }
+}
 
 /// <summary>
 /// A squad order (backlog 0004 S5a1): a squad halted on a spotted enemy moves on. The leader takes up its suspended
 /// movement order; every member learns of the enemies the leader knows and takes back the posture it had before the
 /// halt. Accepted only by the leader of a squad; changes nothing for a squad that is not halted.
 /// </summary>
-public sealed record ResumeMovement : Order;
+public sealed record ResumeMovement : Order
+{
+    internal override void AddTo(StateHasher hash)
+    {
+        hash.Add(nameof(ResumeMovement));
+    }
+}

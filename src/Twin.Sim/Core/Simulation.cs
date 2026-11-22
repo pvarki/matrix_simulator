@@ -592,7 +592,7 @@ public sealed class Simulation
             hash.Add((long)unit.DrillStage);
             hash.Add(unit.IsAwaitingOrders ? 1 : 0);
             hash.Add(unit.RoundsLeft);
-            hash.Add(unit.CurrentOrder?.ToString() ?? "none");
+            hash.Add(unit.CurrentOrder);
             hash.Add(unit.WatchDirection.X);
             hash.Add(unit.WatchDirection.Y);
             hash.Add(unit.IsAlerted ? 1 : 0);
@@ -643,7 +643,7 @@ public sealed class Simulation
 
             hash.Add(squad.Corridor is null ? 0 : 1);
             hash.Add(squad.IsHalted ? 1 : 0);
-            hash.Add(squad.SuspendedOrder?.ToString() ?? "none");
+            hash.Add(squad.SuspendedOrder);
             foreach (var report in squad.PendingReports)
             {
                 hash.Add(report.ReporterId);
@@ -679,9 +679,19 @@ public sealed class Simulation
                 hash.Add(id);
             }
 
-            hash.Add(squad.MovementOrder?.ToString() ?? "none");
+            hash.Add(squad.MovementOrder);
             hash.Add(squad.OrderRequestedAt ?? -1);
-            hash.Add(squad.PendingRequest?.ToString() ?? "none");
+            hash.Add(squad.PendingRequest is not null);
+            if (squad.PendingRequest is { } pending)
+            {
+                hash.Add(pending.UnitId);
+                hash.Add(pending.BoundaryId);
+                hash.Add(pending.At);
+                hash.Add(pending.AskedAt);
+                hash.Add(pending.LeaderAskedAt);
+                hash.Add(pending.HalfWidth);
+            }
+
             if (squad.EdgeDeployment is { } line)
             {
                 foreach (var (id, spot) in line.Spots)
@@ -712,46 +722,5 @@ public sealed class Simulation
         }
 
         return hash.Value;
-    }
-
-    /// <summary>FNV-1a over the exact bit patterns of the state.</summary>
-    private sealed class StateHasher
-    {
-        public ulong Value { get; private set; } = 14695981039346656037UL;
-
-        public void Add(long value)
-        {
-            for (var i = 0; i < 8; i++)
-            {
-                AddByte((byte)(value >> (i * 8)));
-            }
-        }
-
-        public void Add(double value) => Add(BitConverter.DoubleToInt64Bits(value));
-
-        public void Add(Vec3 v)
-        {
-            Add(v.X);
-            Add(v.Y);
-            Add(v.Z);
-        }
-
-        public void Add(string value)
-        {
-            foreach (var c in value)
-            {
-                Add(c);
-            }
-
-            AddByte(0);
-        }
-
-        private void AddByte(byte b)
-        {
-            unchecked
-            {
-                Value = (Value ^ b) * 1099511628211UL;
-            }
-        }
     }
 }

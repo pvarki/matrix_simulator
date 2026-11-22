@@ -59,6 +59,21 @@ public sealed record Corridor(
         var x = (d - (Width / 2)) / SoftMargin;
         return 1 + (SoftPenalty * x * x);
     }
+
+    /// <summary>Adds every field, hard boundaries included, to the state hash.</summary>
+    internal void AddTo(StateHasher hash)
+    {
+        hash.AddAll(Centerline, hash.Add);
+        hash.Add(Width);
+        hash.Add(SoftMargin);
+        hash.Add(SoftPenalty);
+        hash.AddAll(HardBoundaries, boundary =>
+        {
+            hash.Add(boundary.Id);
+            hash.AddAll(boundary.Line, hash.Add);
+            hash.Add((long)boundary.Source);
+        });
+    }
 }
 
 /// <summary>
