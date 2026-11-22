@@ -58,11 +58,12 @@ public static class SpecSpotting
     public static CombatRules Rules { get; } = SpecShooting.Rules with { Observation = Observation };
 
     /// <summary>
-    /// The squad doctrine of <see cref="SpecSquad.Doctrine"/> with the voice range. Where squad members watch comes from
-    /// their S2c observation sectors (<see cref="Twin.Sim.Units.Unit.ObservationSectors"/>): each sector's centre is a
-    /// watch direction, and the best angle factor of them counts (merge with S2c, product owner, 2026-11-18).
+    /// The squad doctrine for spotting tests: the same object as <see cref="SpecSquad.Doctrine"/>, which already carries
+    /// the voice range above. Where squad members watch comes from their S2c observation sectors
+    /// (<see cref="Twin.Sim.Units.Unit.ObservationSectors"/>): each sector's centre is a watch direction, and the best
+    /// angle factor of them counts (merge with S2c, product owner, 2026-11-18).
     /// </summary>
-    public static SquadDoctrine Doctrine { get; } = SpecSquad.Doctrine with { VoiceRangeMeters = VoiceRangeMeters };
+    public static SquadDoctrine Doctrine => SpecSquad.Doctrine;
 
     /// <summary>The base spotting time of an observer with the given experience.</summary>
     public static double BaseSeconds(Experience experience) => experience switch

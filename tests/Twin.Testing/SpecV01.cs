@@ -35,7 +35,8 @@ public static class SpecV01
         ForestMps: 0.9,
         BogMps: 0.6,
         MaxSlope: 0.8,
-        EyeHeightMeters: 1.6);
+        EyeHeightMeters: 1.6,
+        CanRappel: false);
 
     /// <summary>
     /// Relative slope factor from Tobler's hiking function, 1 on flat ground.
