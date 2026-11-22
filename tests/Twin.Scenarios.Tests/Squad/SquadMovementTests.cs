@@ -253,8 +253,20 @@ public class SquadMovementTests
     public void SM9_a_wounded_member_is_not_left_behind()
     {
         var (sim, _) = SmallSquadWithK2Pinned();
+        var orderedAt = sim.TimeSeconds;
 
-        sim.Order("rj", new MoveThroughCorridor(Straight())).RunUntilSquadSettled("r2", TenMinutes);
+        // On the way, the slower wounded k2 falls behind and rj halts for it like any straggler. Away from Start, so this
+        // is not the wait while k2 is still pinned.
+        sim.Order("rj", new MoveThroughCorridor(Straight()))
+            .RunUntil(s => s.Unit("k2").Health == Health.Wounded &&
+                    s.Unit("rj").Activity == UnitActivity.WaitingForSquad &&
+                    s.Unit("rj").Position.Xy.DistanceTo(Start) > 1,
+                TenMinutes, "rj waits mid-route for wounded k2");
+        Assert.True(DistanceToSlot(sim, "k2") > SpecSquad.StragglerMeters,
+            $"k2 is {DistanceToSlot(sim, "k2"):0.##} m from its slot while rj waits");
+
+        // The squad still has to settle within ten minutes of the order, as before.
+        sim.RunUntilSquadSettled("r2", TenMinutes - TimeSpan.FromSeconds(sim.TimeSeconds - orderedAt));
 
         sim.Unit("rj").Should().BeAt(B);
         sim.Unit("k2").Should().HaveHealth(Health.Wounded);

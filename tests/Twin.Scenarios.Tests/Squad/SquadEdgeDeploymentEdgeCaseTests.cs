@@ -60,7 +60,15 @@ public class SquadEdgeDeploymentEdgeCaseTests
         sim.RunUntil(s => s.Events.OfType<EdgeDeployed>().Any(), TwentyMinutes, "squad deployed at the forest edge");
 
         sim.Unit("rj").Should().BeAt(new Vec2(300 - SpecSquad.EdgeInsetMeters, 101), Tolerance);
-        Assert.InRange(DeploymentCommand(sim).Time, 60, double.MaxValue); // not before it has walked through the band
+        // Not before rj has walked through the band: 70 m of open ground, then forest up to where it stopped, at its
+        // leader's speed. Slack below: the one segment across the forest edge moves at the average of the two classes
+        // (up to one cell at forest speed) and the time is rounded to a tick. 25 % above allows for regroup halts.
+        // Measured 2026-11-22: 303 s against bounds of 265.4–335.9 s (minimum walk 268.7 s), 33 s below the upper bound.
+        var leaderOpen = SpecV01.Infantry.OpenMps * SpecSquad.LeaderSpeedFactor;
+        var leaderForest = SpecV01.Infantry.ForestMps * SpecSquad.LeaderSpeedFactor;
+        var minWalk = ((150 - 80) / leaderOpen) + ((sim.Unit("rj").Position.X - 150) / leaderForest);
+        var slack = (SpecV01.CellSize / leaderForest) + SpecV01.DtSeconds;
+        Assert.InRange(DeploymentCommand(sim).Time, minWalk - slack, minWalk * 1.25);
         sim.Step();
         var request = Assert.Single(sim.Events.OfType<PermissionRequested>());
         Assert.Equal(("rj", HardBoundary.ForestEdgeId), (request.AgentId, request.BoundaryId));

@@ -107,7 +107,7 @@ public class CoverPositionTests
         var cover = sim.Simulation.FindCover("blue", "red");
 
         Assert.NotNull(cover);
-        Assert.InRange(cover.Value.DistanceTo(new Vec2(61, 21)), 0, 9);
+        Assert.Equal(new Vec2(53, 21), cover.Value);
         Assert.True(cover.Value.X < 54, $"cover is behind the nearer building, at {cover}");
     }
 

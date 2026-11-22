@@ -93,10 +93,17 @@ public class MoveToTests
             .Build();
         sim.Order("alpha", new MoveTo(Destination));
 
-        while (sim.Step().Unit("alpha").Activity == Twin.Sim.Units.UnitActivity.Moving)
+        // Checks the ground on every tick while alpha moves; fails with a diagnostic instead of hanging if it never stops.
+        sim.RunUntil(s =>
         {
-            sim.Unit("alpha").Should().BeOnGround(sim.Terrain);
-        }
+            var moving = s.Unit("alpha").Activity == Twin.Sim.Units.UnitActivity.Moving;
+            if (moving)
+            {
+                s.Unit("alpha").Should().BeOnGround(s.Terrain);
+            }
+
+            return !moving;
+        }, Generous, "alpha stops moving");
 
         sim.Unit("alpha").Should().BeAt(Destination);
     }
