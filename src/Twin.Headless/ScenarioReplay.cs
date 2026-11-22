@@ -75,8 +75,9 @@ internal static class ScenarioReplay
             }
 
             var fight = CombatDemo.Create("scenarios");
+            var end = RunEnd.ForFireFight(fight);
             return RunAndReplay(
-                fight, () => CombatDemo.IsOver(fight), CombatDemo.Name, options.GetValueOrDefault("--out") ?? Path.Combine("replays", $"{CombatDemo.Name}.jsonl"),
+                fight, end.IsOver, CombatDemo.Name, options.GetValueOrDefault("--out") ?? Path.Combine("replays", $"{CombatDemo.Name}.jsonl"),
                 () => string.Create(CultureInfo.InvariantCulture,
                     $"{fight.EventLog.OfType<ShotFired>().Count()} shots, {fight.Units.Count(u => u.Health == Health.OutOfAction)} out of action"),
                 every, maxSeconds);
@@ -104,8 +105,8 @@ internal static class ScenarioReplay
         var outFile = options.GetValueOrDefault("--out") ?? Path.Combine("replays", $"{name}-{answer}.jsonl");
         if (scenario.Squad is not null)
         {
-            var end = new SquadRunEnd(simulation);
-            return RunAndReplay(simulation, end.IsOver, $"{name} ({answer})", outFile, end.Outcome, every, maxSeconds);
+            var end = RunEnd.ForSquad(simulation);
+            return RunAndReplay(simulation, end.IsOver, $"{name} ({answer})", outFile, () => SquadOutcome(simulation), every, maxSeconds);
         }
 
         var agent = simulation.GetUnit(scenario.AgentId);
@@ -138,6 +139,17 @@ internal static class ScenarioReplay
         }
 
         return 0;
+    }
+
+    /// <summary>A one-line summary of a squad scenario's run for the console.</summary>
+    private static string SquadOutcome(Simulation simulation)
+    {
+        int OutOfAction(Side side) => simulation.Units.Count(u => u.Combatant?.Side == side && u.Health == Health.OutOfAction);
+        int Total(Side side) => simulation.Units.Count(u => u.Combatant?.Side == side);
+        var log = simulation.EventLog;
+        var halted = log.OfType<SquadHalted>().Any() ? "squad halted" : "squad not halted";
+        return $"{log.OfType<EnemySpotted>().Count()} spotted, {halted}, {log.OfType<ShotFired>().Count()} shots, " +
+            $"out of action blue {OutOfAction(Side.Blue)}/{Total(Side.Blue)} red {OutOfAction(Side.Red)}/{Total(Side.Red)}";
     }
 
     private static void Print(IReadOnlyList<SimEvent> events, double endSeconds, double every)
