@@ -81,6 +81,7 @@ At least 10 points at cell centers, with the height GDAL reads from the original
 ## scenario.json
 
 Points are ETRS-TM35FIN `[easting, northing]`, as read from a map; the simulation converts them to local meters.
+A key the format does not know is an error, and every error names its JSON path (`$.squad.members[2].role`).
 
 ```json
 {
@@ -104,7 +105,8 @@ Points are ETRS-TM35FIN `[easting, northing]`, as read from a map; the simulatio
 
 - The agent's destination B is the last centerline point. The agent is spec v0.1 infantry; `canRappel` (optional,
   default false) lets it cross cliffs (ADR 0010).
-- `leader.answer` is `grant`, `deny` or `noAnswer`; acceptance tests run every variant regardless of this value.
+- `leader.answer` is `grant`, `deny` or `noAnswer`. `./dev replay` uses it unless `--answer` is given; acceptance
+  tests run every variant regardless of this value.
 - `hardBoundaries` are lines from the order. Forest edges need no line (ADR 0009).
 - `doctrine` (optional) holds rules decided by people, not by physics (backlog 0002). Any key left out keeps its
   default, which is shown above:

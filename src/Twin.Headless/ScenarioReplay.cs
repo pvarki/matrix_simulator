@@ -19,6 +19,7 @@ internal static class ScenarioReplay
     public const string Usage =
         "Usage: ./dev replay <scenario | log.jsonl> [--answer Grant|Deny|NoAnswer] [--every 60] [--out file.jsonl] [--max-seconds 7200]\n" +
         "  <scenario> is a directory or a name under scenarios/ (e.g. st1). The log goes to replays/<scenario>-<answer>.jsonl.\n" +
+        "  --answer defaults to the scenario's leader.answer.\n" +
         "  st1-combat runs a built-in fire fight on st1 (two fire teams of three) to replays/st1-combat.jsonl.\n" +
         "  A squad scenario (e.g. st1-ambush) runs until its leader arrives or is blocked, one side has nobody in action, or nobody\n" +
         "  has fired for 120 s after the first shot.\n" +
@@ -89,17 +90,33 @@ internal static class ScenarioReplay
             return 1;
         }
 
-        var answerText = options.GetValueOrDefault("--answer") ?? nameof(LeaderAnswer.Grant);
-        // Names only: Enum.TryParse would also take "1", which is easy to mistype and names the log differently.
-        if (!Enum.GetNames<LeaderAnswer>().Contains(answerText, StringComparer.OrdinalIgnoreCase) ||
-            !Enum.TryParse<LeaderAnswer>(answerText, ignoreCase: true, out var answer))
+        LeaderAnswer? given = null;
+        if (options.TryGetValue("--answer", out var answerText))
         {
-            Console.WriteLine($"Unknown --answer '{answerText}'. Use Grant, Deny or NoAnswer.");
-            return 1;
+            // Names only: Enum.TryParse would also take "1", which is easy to mistype and names the log differently.
+            if (!Enum.GetNames<LeaderAnswer>().Contains(answerText, StringComparer.OrdinalIgnoreCase) ||
+                !Enum.TryParse<LeaderAnswer>(answerText, ignoreCase: true, out var parsed))
+            {
+                Console.WriteLine($"Unknown --answer '{answerText}'. Use Grant, Deny or NoAnswer.");
+                return 1;
+            }
+
+            given = parsed;
         }
 
         var name = Path.GetFileName(Path.TrimEndingDirectorySeparator(Path.GetFullPath(dir)));
-        var scenario = ScenarioDefinition.Load(dir);
+        ScenarioDefinition scenario;
+        try
+        {
+            scenario = ScenarioDefinition.Load(dir);
+        }
+        catch (Exception e) when (e is InvalidDataException or IOException or UnauthorizedAccessException)
+        {
+            Console.WriteLine($"Could not load scenario '{dir}': {e.Message}");
+            return 1;
+        }
+
+        var answer = given ?? scenario.Leader.Answer;
         var simulation = scenario.CreateSimulation(answer);
         var outFile = options.GetValueOrDefault("--out") ?? Path.Combine("replays", $"{name}-{answer}.jsonl");
         if (scenario.Squad is not null)
