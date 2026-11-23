@@ -63,7 +63,7 @@ public sealed class SpottingSystem : ISimSystem
     {
         var toTarget = target.Position.Xy - observer.Position.Xy;
         var angle = observer.WatchesSectors
-            ? observer.ObservationSectors.Min(s => AngleDegrees(s.Centre, toTarget)) // the best sector counts
+            ? BestSectorAngle(observer, toTarget) // the best sector counts
             : AngleDegrees(observer.WatchDirection, toTarget);
         if (angle >= rules.FieldOfViewHalfAngleDegrees)
         {
@@ -110,6 +110,22 @@ public sealed class SpottingSystem : ISimSystem
         SquadAlerts.Learn(simulation, observer, target.Id, position, spotted: true);
     }
 
+    /// <summary>The smallest angle between <paramref name="toTarget"/> and the centre of any of the unit's sectors.</summary>
+    private static double BestSectorAngle(Unit observer, Vec2 toTarget)
+    {
+        var best = double.PositiveInfinity;
+        foreach (var sector in observer.ObservationSectors)
+        {
+            var angle = AngleDegrees(sector.Centre, toTarget);
+            if (angle < best)
+            {
+                best = angle;
+            }
+        }
+
+        return best;
+    }
+
     /// <summary>The angle in degrees between two directions; 0 when either has no length.</summary>
     private static double AngleDegrees(Vec2 a, Vec2 b)
     {
@@ -133,12 +149,29 @@ public sealed class SpottingSystem : ISimSystem
         }
     }
 
+    /// <summary>The unit's attacker in action nearest <paramref name="here"/>, the first by ordinal id on a tie; null if none.</summary>
+    private static Unit? NearestAttacker(Simulation simulation, Unit unit, Vec2 here)
+    {
+        Unit? nearest = null;
+        var nearestDistance = 0.0;
+        foreach (var attacker in CombatQueries.Attackers(simulation, unit))
+        {
+            var distance = attacker.Position.Xy.DistanceTo(here);
+            if (nearest is null || distance < nearestDistance ||
+                (distance == nearestDistance && string.CompareOrdinal(attacker.Id, nearest.Id) < 0))
+            {
+                nearest = attacker;
+                nearestDistance = distance;
+            }
+        }
+
+        return nearest;
+    }
+
     private static Vec2? WatchToward(Simulation simulation, Unit unit)
     {
         var here = unit.Position.Xy;
-        if (unit.Drill is not null && CombatQueries.Attackers(simulation, unit)
-                .OrderBy(a => a.Position.Xy.DistanceTo(here)).ThenBy(a => a.Id, StringComparer.Ordinal)
-                .FirstOrDefault() is { } attacker)
+        if (unit.Drill is not null && NearestAttacker(simulation, unit, here) is { } attacker)
         {
             return attacker.Position.Xy - here;
         }
