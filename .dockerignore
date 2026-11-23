@@ -8,3 +8,7 @@ harness/
 .vs/
 .idea/
 **/.DS_Store
+.env
+**/.env
+prep/data/
+replays/
