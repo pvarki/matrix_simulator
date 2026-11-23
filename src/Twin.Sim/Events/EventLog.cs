@@ -20,17 +20,27 @@ public static class EventLog
     public const int SchemaVersion = 1;
 
     /// <summary>Writes events as JSON Lines, each line ending in \n.</summary>
+    /// <exception cref="ArgumentException">An event is of an unknown type or holds a number that is not finite.</exception>
     public static string ToJsonLines(IReadOnlyList<SimEvent> events)
     {
         ArgumentNullException.ThrowIfNull(events);
         var text = new StringBuilder();
         using var buffer = new MemoryStream();
-        foreach (var e in events)
+        for (var i = 0; i < events.Count; i++)
         {
+            var e = events[i];
             buffer.SetLength(0);
-            using (var writer = new Utf8JsonWriter(buffer))
+            try
             {
+                using var writer = new Utf8JsonWriter(buffer);
                 Write(writer, e);
+            }
+            catch (ArgumentException inner)
+            {
+                throw new ArgumentException(
+                    string.Create(CultureInfo.InvariantCulture, $"Cannot write event {i} ({e.GetType().Name}, agent {e.AgentId}): {inner.Message}"),
+                    nameof(events),
+                    inner);
             }
 
             text.Append(Encoding.UTF8.GetString(buffer.GetBuffer(), 0, (int)buffer.Length)).Append('\n');
@@ -57,7 +67,8 @@ public static class EventLog
                 using var json = JsonDocument.Parse(line.TrimEnd('\r'));
                 events.Add(Read(json.RootElement));
             }
-            catch (Exception e) when (e is JsonException or KeyNotFoundException or ArgumentException or FormatException or InvalidOperationException)
+            catch (Exception e) when (e is JsonException or KeyNotFoundException or ArgumentException or FormatException or InvalidOperationException
+                or IndexOutOfRangeException)
             {
                 throw new InvalidDataException($"Invalid event log line {events.Count + 1}: {e.Message}", e);
             }
@@ -70,8 +81,8 @@ public static class EventLog
     {
         w.WriteStartObject();
         w.WriteNumber("v", SchemaVersion);
-        w.WriteString("type", e.GetType().Name);
-        w.WriteNumber("time", e.Time);
+        w.WriteString("type", TagOf(e));
+        w.WriteNumber("time", Finite(e.Time, "time"));
         w.WriteString("agent", e.AgentId);
         switch (e)
         {
@@ -89,9 +100,9 @@ public static class EventLog
                 foreach (var sector in watch.Sectors)
                 {
                     w.WriteStartArray();
-                    w.WriteNumberValue(sector.Centre.X);
-                    w.WriteNumberValue(sector.Centre.Y);
-                    w.WriteNumberValue(sector.WidthDegrees);
+                    w.WriteNumberValue(Finite(sector.Centre.X, "sectors"));
+                    w.WriteNumberValue(Finite(sector.Centre.Y, "sectors"));
+                    w.WriteNumberValue(Finite(sector.WidthDegrees, "sectors"));
                     w.WriteEndArray();
                 }
 
@@ -108,11 +119,11 @@ public static class EventLog
                 w.WriteStartArray("waypoints");
                 foreach (var p in planned.Waypoints)
                 {
-                    WritePoint(w, null, p);
+                    WritePointValue(w, "waypoints", p);
                 }
 
                 w.WriteEndArray();
-                w.WriteNumber("cost", planned.CostSeconds);
+                w.WriteNumber("cost", Finite(planned.CostSeconds, "cost"));
                 break;
             case PermissionRequested requested:
                 w.WriteString("boundary", requested.BoundaryId);
@@ -247,54 +258,93 @@ public static class EventLog
         var type = j.GetProperty("type").GetString();
         return type switch
         {
-            nameof(AgentPlaced) => new AgentPlaced(time, agent, Point3(j.GetProperty("position")),
+            Tags.AgentPlaced => new AgentPlaced(time, agent, Point3(j.GetProperty("position")),
                 j.TryGetProperty("side", out var side) ? Enum.Parse<Side>(side.GetString() ?? string.Empty) : null),
-            nameof(WatchChanged) => new WatchChanged(time, agent, Point2(j.GetProperty("direction")),
+            Tags.WatchChanged => new WatchChanged(time, agent, Point2(j.GetProperty("direction")),
                 j.GetProperty("sectors").EnumerateArray()
                     .Select(s => new ObservationSector(new Vec2(s[0].GetDouble(), s[1].GetDouble()), s[2].GetDouble())).ToList(),
                 j.GetProperty("air").GetBoolean()),
-            nameof(AgentMoved) => new AgentMoved(time, agent, Point3(j.GetProperty("position"))),
-            nameof(ActivityChanged) => new ActivityChanged(time, agent, Enum.Parse<UnitActivity>(Text(j, "activity"))),
-            nameof(PathPlanned) => new PathPlanned(time, agent,
+            Tags.AgentMoved => new AgentMoved(time, agent, Point3(j.GetProperty("position"))),
+            Tags.ActivityChanged => new ActivityChanged(time, agent, Enum.Parse<UnitActivity>(Text(j, "activity"))),
+            Tags.PathPlanned => new PathPlanned(time, agent,
                 j.GetProperty("waypoints").EnumerateArray().Select(Point2).ToList(), j.GetProperty("cost").GetDouble()),
-            nameof(PermissionRequested) => new PermissionRequested(time, agent, Text(j, "boundary"), Point2(j.GetProperty("at"))),
-            nameof(PermissionAnswered) => new PermissionAnswered(time, agent, Text(j, "boundary"), Enum.Parse<LeaderAnswer>(Text(j, "answer"))),
-            nameof(PermissionTimedOut) => new PermissionTimedOut(time, agent, Text(j, "boundary")),
-            nameof(Arrived) => new Arrived(time, agent, Point2(j.GetProperty("position"))),
-            nameof(Blocked) => new Blocked(time, agent, Text(j, "reason")),
-            nameof(ShotFired) => new ShotFired(time, agent, Text(j, "target"), j.GetProperty("hit").GetBoolean(),
+            Tags.PermissionRequested => new PermissionRequested(time, agent, Text(j, "boundary"), Point2(j.GetProperty("at"))),
+            Tags.PermissionAnswered => new PermissionAnswered(time, agent, Text(j, "boundary"), Enum.Parse<LeaderAnswer>(Text(j, "answer"))),
+            Tags.PermissionTimedOut => new PermissionTimedOut(time, agent, Text(j, "boundary")),
+            Tags.Arrived => new Arrived(time, agent, Point2(j.GetProperty("position"))),
+            Tags.Blocked => new Blocked(time, agent, Text(j, "reason")),
+            Tags.ShotFired => new ShotFired(time, agent, Text(j, "target"), j.GetProperty("hit").GetBoolean(),
                 j.TryGetProperty("mode", out var mode) ? Enum.Parse<FireMode>(mode.GetString() ?? string.Empty) : FireMode.Aimed,
                 j.TryGetProperty("rounds", out var rounds) ? rounds.GetInt32() : 1),
-            nameof(ShotHeard) => new ShotHeard(time, agent, Text(j, "shooter"), Point2(j.GetProperty("shooterPosition")),
+            Tags.ShotHeard => new ShotHeard(time, agent, Text(j, "shooter"), Point2(j.GetProperty("shooterPosition")),
                 j.TryGetProperty("weaponClass", out var weaponClass) ? Enum.Parse<WeaponClass>(weaponClass.GetString() ?? string.Empty) : WeaponClass.Rifle),
-            nameof(EnemyEstimateChanged) => new EnemyEstimateChanged(time, agent, Text(j, "squad"), j.GetProperty("fighters").GetInt32(),
+            Tags.EnemyEstimateChanged => new EnemyEstimateChanged(time, agent, Text(j, "squad"), j.GetProperty("fighters").GetInt32(),
                 j.GetProperty("heavyMachineGun").GetBoolean()),
-            nameof(HealthChanged) => new HealthChanged(time, agent, Enum.Parse<Health>(Text(j, "health"))),
-            nameof(CasualtyOccurred) => new CasualtyOccurred(time, agent, Point2(j.GetProperty("position")), Enum.Parse<Health>(Text(j, "health"))),
-            nameof(SuppressionStarted) => new SuppressionStarted(time, agent, j.TryGetProperty("heavy", out var heavy) && heavy.GetBoolean()),
-            nameof(SuppressionEnded) => new SuppressionEnded(time, agent),
-            nameof(PostureChanged) => new PostureChanged(time, agent, Enum.Parse<Posture>(Text(j, "posture"))),
-            nameof(SquadFormed) => new SquadFormed(time, agent, Text(j, "squad"), Strings(j, "teams"), Strings(j, "teamLeaders"),
+            Tags.HealthChanged => new HealthChanged(time, agent, Enum.Parse<Health>(Text(j, "health"))),
+            Tags.CasualtyOccurred => new CasualtyOccurred(time, agent, Point2(j.GetProperty("position")), Enum.Parse<Health>(Text(j, "health"))),
+            Tags.SuppressionStarted => new SuppressionStarted(time, agent, j.TryGetProperty("heavy", out var heavy) && heavy.GetBoolean()),
+            Tags.SuppressionEnded => new SuppressionEnded(time, agent),
+            Tags.PostureChanged => new PostureChanged(time, agent, Enum.Parse<Posture>(Text(j, "posture"))),
+            Tags.SquadFormed => new SquadFormed(time, agent, Text(j, "squad"), Strings(j, "teams"), Strings(j, "teamLeaders"),
                 j.TryGetProperty("formation", out var formed) ? Enum.Parse<SquadFormation>(formed.GetString() ?? string.Empty) : SquadFormation.File),
-            nameof(OrderRequested) => new OrderRequested(time, agent, Text(j, "squad")),
-            nameof(OrderRepeated) => new OrderRepeated(time, agent, Text(j, "squad")),
-            nameof(EdgeDeployed) => new EdgeDeployed(time, agent, Text(j, "squad")),
-            nameof(FormationChanged) => new FormationChanged(time, agent, Text(j, "squad"), Enum.Parse<SquadFormation>(Text(j, "formation"))),
-            nameof(CommandIssued) => new CommandIssued(time, agent, Text(j, "squad"), j.GetProperty("commandId").GetInt32(), Text(j, "command")),
-            nameof(CommandReceived) => new CommandReceived(time, agent, j.GetProperty("commandId").GetInt32()),
-            nameof(LeaderChanged) => new LeaderChanged(time, agent, Text(j, "squad")),
-            nameof(TeamLeaderChanged) => new TeamLeaderChanged(time, agent, Text(j, "squad"), Text(j, "team")),
-            nameof(ContactDrillStageChanged) => new ContactDrillStageChanged(time, agent, Enum.Parse<ContactDrillStage>(Text(j, "stage"))),
-            nameof(ContactReported) => new ContactReported(time, agent, Text(j, "attacker"), Point2(j.GetProperty("attackerPosition"))),
-            nameof(EnemySpotted) => new EnemySpotted(time, agent, Text(j, "enemy"), Point2(j.GetProperty("enemyPosition"))),
-            nameof(SpotReported) => new SpotReported(time, agent, Text(j, "enemy"), Point2(j.GetProperty("enemyPosition")),
+            Tags.OrderRequested => new OrderRequested(time, agent, Text(j, "squad")),
+            Tags.OrderRepeated => new OrderRepeated(time, agent, Text(j, "squad")),
+            Tags.EdgeDeployed => new EdgeDeployed(time, agent, Text(j, "squad")),
+            Tags.FormationChanged => new FormationChanged(time, agent, Text(j, "squad"), Enum.Parse<SquadFormation>(Text(j, "formation"))),
+            Tags.CommandIssued => new CommandIssued(time, agent, Text(j, "squad"), j.GetProperty("commandId").GetInt32(), Text(j, "command")),
+            Tags.CommandReceived => new CommandReceived(time, agent, j.GetProperty("commandId").GetInt32()),
+            Tags.LeaderChanged => new LeaderChanged(time, agent, Text(j, "squad")),
+            Tags.TeamLeaderChanged => new TeamLeaderChanged(time, agent, Text(j, "squad"), Text(j, "team")),
+            Tags.ContactDrillStageChanged => new ContactDrillStageChanged(time, agent, Enum.Parse<ContactDrillStage>(Text(j, "stage"))),
+            Tags.ContactReported => new ContactReported(time, agent, Text(j, "attacker"), Point2(j.GetProperty("attackerPosition"))),
+            Tags.EnemySpotted => new EnemySpotted(time, agent, Text(j, "enemy"), Point2(j.GetProperty("enemyPosition"))),
+            Tags.SpotReported => new SpotReported(time, agent, Text(j, "enemy"), Point2(j.GetProperty("enemyPosition")),
                 Enum.Parse<ReportMethod>(Text(j, "method"))),
-            nameof(SpotReceived) => new SpotReceived(time, agent, Text(j, "reporter"), Text(j, "enemy"), Point2(j.GetProperty("enemyPosition"))),
-            nameof(SquadHalted) => new SquadHalted(time, agent, Text(j, "squad"), Text(j, "enemy")),
-            nameof(SquadResumed) => new SquadResumed(time, agent, Text(j, "squad")),
+            Tags.SpotReceived => new SpotReceived(time, agent, Text(j, "reporter"), Text(j, "enemy"), Point2(j.GetProperty("enemyPosition"))),
+            Tags.SquadHalted => new SquadHalted(time, agent, Text(j, "squad"), Text(j, "enemy")),
+            Tags.SquadResumed => new SquadResumed(time, agent, Text(j, "squad")),
             _ => throw new InvalidDataException(string.Create(CultureInfo.InvariantCulture, $"Unknown event type '{type}'.")),
         };
     }
+
+    private static string TagOf(SimEvent e) => e switch
+    {
+        AgentPlaced => Tags.AgentPlaced,
+        WatchChanged => Tags.WatchChanged,
+        AgentMoved => Tags.AgentMoved,
+        ActivityChanged => Tags.ActivityChanged,
+        PathPlanned => Tags.PathPlanned,
+        PermissionRequested => Tags.PermissionRequested,
+        PermissionAnswered => Tags.PermissionAnswered,
+        PermissionTimedOut => Tags.PermissionTimedOut,
+        Arrived => Tags.Arrived,
+        Blocked => Tags.Blocked,
+        ShotFired => Tags.ShotFired,
+        ShotHeard => Tags.ShotHeard,
+        EnemyEstimateChanged => Tags.EnemyEstimateChanged,
+        HealthChanged => Tags.HealthChanged,
+        CasualtyOccurred => Tags.CasualtyOccurred,
+        SuppressionStarted => Tags.SuppressionStarted,
+        SuppressionEnded => Tags.SuppressionEnded,
+        PostureChanged => Tags.PostureChanged,
+        SquadFormed => Tags.SquadFormed,
+        OrderRequested => Tags.OrderRequested,
+        OrderRepeated => Tags.OrderRepeated,
+        EdgeDeployed => Tags.EdgeDeployed,
+        FormationChanged => Tags.FormationChanged,
+        CommandIssued => Tags.CommandIssued,
+        CommandReceived => Tags.CommandReceived,
+        LeaderChanged => Tags.LeaderChanged,
+        TeamLeaderChanged => Tags.TeamLeaderChanged,
+        ContactDrillStageChanged => Tags.ContactDrillStageChanged,
+        ContactReported => Tags.ContactReported,
+        EnemySpotted => Tags.EnemySpotted,
+        SpotReported => Tags.SpotReported,
+        SpotReceived => Tags.SpotReceived,
+        SquadHalted => Tags.SquadHalted,
+        SquadResumed => Tags.SquadResumed,
+        _ => throw new ArgumentException($"Unknown event type {e.GetType().Name}.", nameof(e)),
+    };
 
     private static string Text(JsonElement j, string name) => j.GetProperty(name).GetString() ?? string.Empty;
 
@@ -312,34 +362,113 @@ public static class EventLog
         w.WriteEndArray();
     }
 
-    private static void WritePoint(Utf8JsonWriter w, string? name, Vec2 p)
+    private static void WritePoint(Utf8JsonWriter w, string name, Vec2 p)
     {
-        if (name is null)
-        {
-            w.WriteStartArray();
-        }
-        else
-        {
-            w.WriteStartArray(name);
-        }
+        w.WritePropertyName(name);
+        WritePointValue(w, name, p);
+    }
 
-        w.WriteNumberValue(p.X);
-        w.WriteNumberValue(p.Y);
+    private static void WritePointValue(Utf8JsonWriter w, string field, Vec2 p)
+    {
+        w.WriteStartArray();
+        w.WriteNumberValue(Finite(p.X, field));
+        w.WriteNumberValue(Finite(p.Y, field));
         w.WriteEndArray();
     }
 
     private static void WritePoint(Utf8JsonWriter w, string name, Vec3 p)
     {
         w.WriteStartArray(name);
-        w.WriteNumberValue(p.X);
-        w.WriteNumberValue(p.Y);
-        w.WriteNumberValue(p.Z);
+        w.WriteNumberValue(Finite(p.X, name));
+        w.WriteNumberValue(Finite(p.Y, name));
+        w.WriteNumberValue(Finite(p.Z, name));
         w.WriteEndArray();
     }
+
+    /// <summary>Returns <paramref name="value"/>, or throws if it is NaN or infinite: the log holds only finite numbers (ADR 0014).</summary>
+    private static double Finite(double value, string field) => double.IsFinite(value)
+        ? value
+        : throw new ArgumentException(string.Create(CultureInfo.InvariantCulture,
+            $"Field '{field}' is {value}, not finite; the event log holds only finite numbers."));
 
     private static Vec2 Point2(JsonElement a) => new(a[0].GetDouble(), a[1].GetDouble());
 
     private static Vec3 Point3(JsonElement a) => new(a[0].GetDouble(), a[1].GetDouble(), a[2].GetDouble());
+
+    /// <summary>
+    /// The type tags written in the <c>type</c> field: on-disk names; never change a value (ADR 0014). A renamed record
+    /// keeps its old tag.
+    /// </summary>
+    private static class Tags
+    {
+        public const string AgentPlaced = "AgentPlaced";
+
+        public const string WatchChanged = "WatchChanged";
+
+        public const string AgentMoved = "AgentMoved";
+
+        public const string ActivityChanged = "ActivityChanged";
+
+        public const string PathPlanned = "PathPlanned";
+
+        public const string PermissionRequested = "PermissionRequested";
+
+        public const string PermissionAnswered = "PermissionAnswered";
+
+        public const string PermissionTimedOut = "PermissionTimedOut";
+
+        public const string Arrived = "Arrived";
+
+        public const string Blocked = "Blocked";
+
+        public const string ShotFired = "ShotFired";
+
+        public const string ShotHeard = "ShotHeard";
+
+        public const string EnemyEstimateChanged = "EnemyEstimateChanged";
+
+        public const string HealthChanged = "HealthChanged";
+
+        public const string CasualtyOccurred = "CasualtyOccurred";
+
+        public const string SuppressionStarted = "SuppressionStarted";
+
+        public const string SuppressionEnded = "SuppressionEnded";
+
+        public const string PostureChanged = "PostureChanged";
+
+        public const string SquadFormed = "SquadFormed";
+
+        public const string OrderRequested = "OrderRequested";
+
+        public const string OrderRepeated = "OrderRepeated";
+
+        public const string EdgeDeployed = "EdgeDeployed";
+
+        public const string FormationChanged = "FormationChanged";
+
+        public const string CommandIssued = "CommandIssued";
+
+        public const string CommandReceived = "CommandReceived";
+
+        public const string LeaderChanged = "LeaderChanged";
+
+        public const string TeamLeaderChanged = "TeamLeaderChanged";
+
+        public const string ContactDrillStageChanged = "ContactDrillStageChanged";
+
+        public const string ContactReported = "ContactReported";
+
+        public const string EnemySpotted = "EnemySpotted";
+
+        public const string SpotReported = "SpotReported";
+
+        public const string SpotReceived = "SpotReceived";
+
+        public const string SquadHalted = "SquadHalted";
+
+        public const string SquadResumed = "SquadResumed";
+    }
 }
 
 /// <summary>Rebuilds the simulation state from an event log, as the viewer's replay does.</summary>
