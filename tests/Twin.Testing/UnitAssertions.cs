@@ -42,8 +42,21 @@ public sealed class UnitAssertions
     }
 
     /// <summary>The unit is idle.</summary>
-    public UnitAssertions BeIdle() =>
-        Check(_unit.IsIdle && _unit.Velocity == Vec3.Zero, "to be idle and stationary");
+    public UnitAssertions BeIdle()
+    {
+        var problems = new List<string>();
+        if (!_unit.IsIdle)
+        {
+            problems.Add($"it is not idle (activity {_unit.Activity})");
+        }
+
+        if (_unit.Velocity != Vec3.Zero)
+        {
+            problems.Add($"it is moving at {_unit.Velocity}");
+        }
+
+        return Check(problems.Count == 0, $"to be idle and stationary, but {string.Join(" and ", problems)}");
+    }
 
     /// <summary>The unit has no current order ("order none" in diagnostics).</summary>
     public UnitAssertions HaveNoOrder() =>
@@ -55,9 +68,13 @@ public sealed class UnitAssertions
         var heading = _unit.Velocity.Xy.Normalized();
         var wanted = (destination - _unit.Position.Xy).Normalized();
         const double maxAngleCos = 0.999; // within ~2.5 degrees
+        var dot = heading.Dot(wanted);
+        var actually = _unit.Velocity.Xy == Vec2.Zero
+            ? "it is not moving"
+            : $"it heads {heading}, {Math.Acos(Math.Clamp(dot, -1, 1)) * 180 / Math.PI:0.#}° off";
         return Check(
-            _unit.Activity == UnitActivity.Moving && heading.Dot(wanted) >= maxAngleCos,
-            $"to be moving toward {destination}");
+            _unit.Activity == UnitActivity.Moving && dot >= maxAngleCos,
+            $"to be moving toward {destination}, but {actually} (activity {_unit.Activity})");
     }
 
     /// <summary>The unit's height equals the ground height under it.</summary>

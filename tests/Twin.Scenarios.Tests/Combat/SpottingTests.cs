@@ -116,6 +116,58 @@ public class SpottingTests
         sim.ShouldNotHaveSpotted("blue", "red");
     }
 
+    // Edge pairs at ±0.5°: Turned() is not exact (15° measures 14.999999999999996°), so a test exactly on 15° could not
+    // tell an inclusive edge from an exclusive one.
+    [Theory]
+    [InlineData(14.5)]
+    public void SP2_just_inside_the_focus_cone_the_angle_factor_is_one(double degreesOff)
+    {
+        var sim = Watching(RedOffToTheRight(degreesOff), Blue + new Vec2(100, 0));
+        var expected = SpecSpotting.SpotSeconds(Experience.Regular, EyeToAim(sim), angleFactor: 1);
+
+        sim.RunUntilSpotted("blue", "red", OneMinute);
+
+        sim.ShouldHaveSpottedAfter("blue", "red", expected);
+    }
+
+    [Theory]
+    [InlineData(15.5)]
+    public void SP2_just_outside_the_focus_cone_the_angle_factor_is_three(double degreesOff)
+    {
+        var sim = Watching(RedOffToTheRight(degreesOff), Blue + new Vec2(100, 0));
+        var expected = SpecSpotting.SpotSeconds(
+            Experience.Regular, EyeToAim(sim), angleFactor: SpecSpotting.FieldOfViewFactor);
+
+        sim.RunUntilSpotted("blue", "red", OneMinute);
+
+        sim.ShouldHaveSpottedAfter("blue", "red", expected);
+    }
+
+    [Fact]
+    public void SP2_an_enemy_exactly_ninety_degrees_off_is_outside_the_field_of_view()
+    {
+        // Watching north with red due east: the angle is exactly 90° in floating point (dot product 0).
+        var sim = Watching(new Vec2(0, 1), Blue + new Vec2(100, 0));
+
+        sim.RunFor(TimeSpan.FromMinutes(5));
+
+        Assert.True(sim.Simulation.CanSee("blue", "red"), "the line of sight is clear; only the watch direction is wrong");
+        sim.ShouldNotHaveSpotted("blue", "red");
+    }
+
+    [Theory]
+    [InlineData(89.5)]
+    public void SP2_just_inside_the_field_of_view_the_angle_factor_is_three(double degreesOff)
+    {
+        var sim = Watching(RedOffToTheRight(degreesOff), Blue + new Vec2(100, 0));
+        var expected = SpecSpotting.SpotSeconds(
+            Experience.Regular, EyeToAim(sim), angleFactor: SpecSpotting.FieldOfViewFactor);
+
+        sim.RunUntilSpotted("blue", "red", OneMinute);
+
+        sim.ShouldHaveSpottedAfter("blue", "red", expected);
+    }
+
     [Theory]
     [InlineData(50)]
     [InlineData(100)]

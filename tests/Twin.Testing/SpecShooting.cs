@@ -44,7 +44,10 @@ public static class SpecShooting
         PinnedSeconds: 60)
     {
         Suppression = SpecSuppression.Rules,
-        Doctrine = Doctrine.Default with { Drill = SpecSuppression.Drill },
+        Doctrine = new Doctrine(ReturnFireOverridesFireAt: true, PermissionAnswers: PermissionAnswerTiming.WhenFree)
+        {
+            Drill = SpecSuppression.Drill,
+        },
         Observation = ObservationRules.Off,
     };
 
@@ -63,7 +66,8 @@ public static class SpecShooting
         FlashSeconds: 2,
         SuppressionPerRound: 1.2,
         RoundsPerBurst: 1,
-        SnapSecondsPerShot: 0.7);
+        SnapSecondsPerShot: 0.7,
+        Class: WeaponClass.Rifle);
 
     /// <summary>Hit probability from range alone: 0.6 · exp(−d / 150), zero beyond 600 m.</summary>
     public static double RangeProbability(double distance) => distance > 600 ? 0 : 0.6 * Math.Exp(-distance / 150);

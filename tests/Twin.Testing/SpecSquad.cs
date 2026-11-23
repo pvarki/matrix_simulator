@@ -77,10 +77,19 @@ public static class SpecSquad
     /// </summary>
     public const string DeployAtForestEdgeCommand = "DeployAtForestEdge";
 
+    /// <summary>A suppressed member reacts, relays and takes over this many times slower (backlog 0004 S5a2).</summary>
+    public const double SuppressedDelayFactor = 1.5;
+
+    /// <summary>A heavily suppressed member reacts, relays and takes over this many times slower (backlog 0004 S5a2).</summary>
+    public const double HeavilySuppressedDelayFactor = 3;
+
     /// <summary>
     /// The doctrine of backlog 0004: command delays (reaction 1 s / 3 s, relay 2 s, takeover 5 s), squad movement
-    /// (10 m interval, 1 m minimum gap, leader at 0.8 ×, halts beyond 20 m, moves on within 5 m, 64 m search window) and
-    /// the forest edge and observation (5 m inside the edge, 60 s limit, second line 10 m deeper, 90° sectors).
+    /// (10 m interval, 1 m minimum gap, leader at 0.8 ×, halts beyond 20 m, moves on within 5 m, 64 m search window),
+    /// the forest edge and observation (5 m inside the edge, 60 s limit, second line 10 m deeper, 90° sectors), the
+    /// slower command under suppression (1.5 × suppressed, 3 × heavily suppressed; S5a2) and the voice range of spot
+    /// reports (<see cref="SpecSpotting.VoiceRangeMeters"/>; S5a1). Every value is stated here, none is taken from the
+    /// simulation's defaults.
     /// </summary>
     public static SquadDoctrine Doctrine { get; } = new(
         ExperiencedReactionSeconds: ExperiencedReactionSeconds,
@@ -96,7 +105,12 @@ public static class SpecSquad
         EdgeInsetMeters: EdgeInsetMeters,
         EdgeDeploymentSeconds: EdgeDeploymentSeconds,
         SecondLineDepthMeters: SecondLineDepthMeters,
-        SectorWidthDegrees: SectorWidthDegrees);
+        SectorWidthDegrees: SectorWidthDegrees,
+        SuppressedDelayFactor: SuppressedDelayFactor,
+        HeavilySuppressedDelayFactor: HeavilySuppressedDelayFactor)
+    {
+        VoiceRangeMeters = SpecSpotting.VoiceRangeMeters,
+    };
 
     /// <summary>The wedge's step back and out between neighbours on an arm: the interval at 45° (7.07 m).</summary>
     public static double WedgeStepMeters => IntervalMeters / Math.Sqrt(2);
