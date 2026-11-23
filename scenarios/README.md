@@ -38,8 +38,9 @@ with Git LFS (`.gitattributes`); run `git lfs install` once per machine.
     { "name": "h_maa", "type": "float32", "file": "h_maa.bin", "sha256": "<hex>" },
     { "name": "maastoluokka", "type": "uint8", "file": "maastoluokka.bin", "sha256": "<hex>" }
   ],
-  "cliffs": { "file": "jyrkanteet.json", "sha256": "<hex>" },
-  "sources": [ { "name": "MML Korkeusmalli 2 m", "date": "2026-11-08" } ]
+  "sources": [ { "name": "MML Korkeusmalli 2 m", "date": "2026-11-08" } ],
+  "attribution": "Contains data from the National Land Survey of Finland (Maanmittauslaitos) ...",
+  "cliffs": { "file": "jyrkanteet.json", "sha256": "<hex>" }
 }
 ```
 
@@ -58,6 +59,9 @@ Overlaps are resolved in this order: building, water, road, bog, field, forest, 
 Leaving forest is always a hard boundary (ADR 0009).
 
 `cliffs` is optional; without it the world has no cliffs.
+
+`attribution` is optional: the sentence the data licence requires (for MML data, the one in the scenario's README).
+Any client that draws the map must show it; the replay viewer draws it above its timeline.
 
 ## world/jyrkanteet.json
 

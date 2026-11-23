@@ -44,6 +44,26 @@ public class WorldFilesTests
     }
 
     [Fact]
+    public void Manifest_attribution_is_read_into_the_loaded_world()
+    {
+        using var files = TestWorldFiles.Write(Columns, Rows, Heights, Classes, attribution: "Contains synthetic test data.");
+
+        var loaded = WorldFiles.Load(files.Directory);
+
+        Assert.Equal("Contains synthetic test data.", loaded.Attribution);
+    }
+
+    [Fact]
+    public void World_without_attribution_has_none()
+    {
+        using var files = TestWorldFiles.Write(Columns, Rows, Heights, Classes);
+
+        var loaded = WorldFiles.Load(files.Directory);
+
+        Assert.Null(loaded.Attribution);
+    }
+
+    [Fact]
     public void Layer_whose_checksum_does_not_match_the_manifest_is_rejected()
     {
         using var files = TestWorldFiles.Write(Columns, Rows, Heights, Classes);

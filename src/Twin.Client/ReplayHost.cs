@@ -5,6 +5,7 @@ using Twin.Sim.Corridors;
 using Twin.Sim.Events;
 using Twin.Sim.Geometry;
 using Twin.Sim.Scenarios;
+using Twin.Sim.Squads;
 using Twin.Sim.World;
 
 namespace Twin.Client;
@@ -30,6 +31,7 @@ public partial class ReplayHost : Node2D
     private Camera2D _camera = null!;
     private Label _status = null!;
     private Label _log = null!;
+    private Label? _attribution;
     private HSlider _slider = null!;
     private double _time;
     private double _end;
@@ -46,7 +48,7 @@ public partial class ReplayHost : Node2D
         AddChild(hud);
         _status = HudLabel(hud, new Vector2(12, 8));
 
-        if (!TryLoad(out var world, out var corridor, out var title, out var error))
+        if (!TryLoad(out var world, out var corridor, out var title, out var attribution, out var voiceRange, out var error))
         {
             _status.Text = $"{error}\n\nUsage: ./dev replay <scenario> --godot\n   or: godot --path src/Twin.Client res://Replay.tscn -- --scenario <dir> --log <file.jsonl>";
             return;
@@ -58,7 +60,7 @@ public partial class ReplayHost : Node2D
         // One pixel per meter; the camera zoom fits the map to the window (LayoutHud).
         _mapper = new CoordinateMapper(world.WidthMeters, world.DepthMeters, pixelsPerMeter: 1f);
         AddChild(new MapView(world, _mapper));
-        _layer = new ReplayLayer(_events, corridor, world, _mapper);
+        _layer = new ReplayLayer(_events, corridor, world, _mapper, voiceRange);
         AddChild(_layer);
 
         _focus = Focus(world, corridor);
@@ -77,6 +79,15 @@ public partial class ReplayHost : Node2D
             }
         };
         hud.AddChild(_slider);
+        if (attribution is not null)
+        {
+            // The map data's licence requires this text wherever the map is shown.
+            _attribution = HudLabel(hud, Vector2.Zero);
+            _attribution.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            _attribution.GrowVertical = Control.GrowDirection.Begin;
+            _attribution.Text = attribution;
+        }
+
         GetViewport().SizeChanged += LayoutHud;
         LayoutHud();
     }
@@ -171,11 +182,19 @@ public partial class ReplayHost : Node2D
         }
     }
 
-    private bool TryLoad(out RasterWorld world, out Corridor? corridor, out string title, out string error)
+    private bool TryLoad(
+        out RasterWorld world,
+        out Corridor? corridor,
+        out string title,
+        out string? attribution,
+        out double voiceRange,
+        out string error)
     {
         world = null!;
         corridor = null;
         title = string.Empty;
+        attribution = null;
+        voiceRange = SquadDoctrine.Default.VoiceRangeMeters;
         var args = OS.GetCmdlineUserArgs();
         var scenarioDir = Option(args, "--scenario");
         var logFile = Option(args, "--log");
@@ -190,12 +209,15 @@ public partial class ReplayHost : Node2D
             var scenario = ScenarioDefinition.Load(scenarioDir);
             _events = EventLog.FromJsonLines(File.ReadAllText(logFile));
             world = scenario.World.World;
+            attribution = scenario.World.Attribution;
             // A log of another run on the same map (such as the combat demo) does not have this scenario's agent or squad, nor
             // its corridor.
             var ofThisScenario = scenario.Squad is { } squad
                 ? _events.OfType<SquadFormed>().Any(f => f.SquadId == squad.Id)
                 : _events.Any(e => e.AgentId == scenario.AgentId);
             corridor = ofThisScenario ? scenario.Corridor : null;
+            // A demo log such as the combat demo was not run with this scenario's squad doctrine.
+            voiceRange = ofThisScenario ? scenario.SquadDoctrine.VoiceRangeMeters : SquadDoctrine.Default.VoiceRangeMeters;
             title = $"{Path.GetFileName(logFile)} on {Path.GetFileName(Path.TrimEndingDirectorySeparator(scenarioDir))}";
             error = string.Empty;
             return true;
@@ -260,6 +282,15 @@ public partial class ReplayHost : Node2D
         _slider.Size = new Vector2(size.X - 24, 24);
         _log.Position = new Vector2(size.X - 432, 8);
         _log.Size = new Vector2(420, 0);
+        if (_attribution is not null)
+        {
+            // Wraps to the window width. Its bottom edge is fixed just above the timeline and it grows upwards to fit its
+            // lines; measuring the wrapped height here would read it before the label has re-wrapped to the new width.
+            _attribution.OffsetLeft = 12;
+            _attribution.OffsetRight = size.X - 12;
+            _attribution.OffsetTop = size.Y - 36;
+            _attribution.OffsetBottom = size.Y - 36;
+        }
 
         // Fit the whole map between the status text and the timeline.
         var fit = Math.Max(MinZoom, Math.Min((size.X - 40) / _focus.Size.X, (size.Y - 200) / _focus.Size.Y));

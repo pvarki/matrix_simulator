@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Twin.Sim.World;
 
 namespace Twin.Testing;
@@ -19,9 +20,17 @@ public sealed class TestWorldFiles : IDisposable
 
     /// <summary>
     /// Writes a world. Arrays are row-major with row 0 the southernmost row: index = row * columns + column.
+    /// <paramref name="attribution"/> becomes the manifest's <c>attribution</c> entry; when it is null the manifest
+    /// has no such key at all.
     /// </summary>
     public static TestWorldFiles Write(
-        int columns, int rows, float[] heights, TerrainClass[] classes, double originEasting = 385000, double originNorthing = 6672000)
+        int columns,
+        int rows,
+        float[] heights,
+        TerrainClass[] classes,
+        double originEasting = 385000,
+        double originNorthing = 6672000,
+        string? attribution = null)
     {
         ArgumentNullException.ThrowIfNull(heights);
         ArgumentNullException.ThrowIfNull(classes);
@@ -57,8 +66,10 @@ public sealed class TestWorldFiles : IDisposable
                 new { name = "maastoluokka", type = "uint8", file = "maastoluokka.bin", sha256 = Sha256(classBytes) },
             },
             sources = new[] { new { name = "synthetic test data", date = "2026-11-08" } },
+            attribution,
         };
-        File.WriteAllText(Path.Combine(directory, "manifest.json"), JsonSerializer.Serialize(manifest));
+        var options = new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
+        File.WriteAllText(Path.Combine(directory, "manifest.json"), JsonSerializer.Serialize(manifest, options));
         return new TestWorldFiles(directory);
     }
 

@@ -76,6 +76,12 @@ public sealed class ScenarioDefinition
     /// <summary>The scenario's doctrine (<c>doctrine</c> in scenario.json), or the default doctrine.</summary>
     public Doctrine Doctrine { get; }
 
+    /// <summary>
+    /// The squad doctrine the scenario runs with (voice range, formation intervals). Always
+    /// <see cref="Squads.SquadDoctrine.Default"/> for now; read from scenario.json once PR 18 adds the key.
+    /// </summary>
+    public SquadDoctrine SquadDoctrine { get; } = SquadDoctrine.Default;
+
     /// <summary>Random seed.</summary>
     public ulong Seed { get; }
 
@@ -319,6 +325,7 @@ public sealed class ScenarioDefinition
             Leader = Leader with { Answer = answer },
             Permission = Permission,
             Combat = CombatRules.Default with { Doctrine = Doctrine },
+            SquadDoctrine = SquadDoctrine,
         };
         var simulation = new Simulation(World.World, config);
         if (Squad is { } squad)

@@ -50,6 +50,7 @@ def build_world(km2_tif: str, mtk_gpkg: str, origin_e: float, origin_n: float, s
     crop_gt = (origin_e, CELL_SIZE, 0.0, top_n, 0.0, -CELL_SIZE)
     classes = classify(mtk_gpkg, crop_gt, cells, cells, elevation.GetProjection())
 
+    downloaded = source_date or str(date.today())
     manifest = {
         "schemaVersion": 1,
         "crs": "EPSG:3067",
@@ -64,9 +65,12 @@ def build_world(km2_tif: str, mtk_gpkg: str, origin_e: float, origin_n: float, s
              "sha256": write_layer(out / "maastoluokka.bin", classes)},
         ],
         "sources": [
-            {"name": "MML Korkeusmalli 2 m", "file": Path(km2_tif).name, "date": source_date or str(date.today())},
-            {"name": "MML Maastotietokanta", "file": Path(mtk_gpkg).name, "date": source_date or str(date.today())},
+            {"name": "MML Korkeusmalli 2 m", "file": Path(km2_tif).name, "date": downloaded},
+            {"name": "MML Maastotietokanta", "file": Path(mtk_gpkg).name, "date": downloaded},
         ],
+        # Required by the CC BY 4.0 licence; every client that draws the map shows it.
+        "attribution": "Contains data from the National Land Survey of Finland (Maanmittauslaitos) Elevation model 2 m "
+                       f"and Topographic Database, downloaded {downloaded}, licence CC BY 4.0.",
     }
     cliffs = json.dumps({"lines": cliff_lines(mtk_gpkg, origin_e, origin_n, cells * CELL_SIZE)}, separators=(",", ":")) + "\n"
     (out / "jyrkanteet.json").write_text(cliffs)

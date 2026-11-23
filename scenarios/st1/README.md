@@ -30,4 +30,5 @@ D=prep/data/sipoonkorpi_6km
 ## Data sources and attribution
 
 Contains data from the National Land Survey of Finland (Maanmittauslaitos) Elevation model 2 m and Topographic
-Database, downloaded 2026-11-08, licence CC BY 4.0. The same attribution must be shown in the Godot client.
+Database, downloaded 2026-11-08, licence CC BY 4.0. The same attribution must be shown in the Godot client (the client reads it from
+`world/manifest.json`).
