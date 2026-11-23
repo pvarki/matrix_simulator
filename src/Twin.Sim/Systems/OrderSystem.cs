@@ -80,7 +80,7 @@ internal sealed class OrderSystem : ISimSystem
                     StandDown(unit);
                     unit.CurrentOrder = null;
                     break;
-                default:
+                case MoveTo or MoveThroughCorridor or FireAt:
                     CombatQueries.EndOrder(unit);
                     StandDown(unit);
                     unit.CurrentOrder = order;
@@ -93,6 +93,8 @@ internal sealed class OrderSystem : ISimSystem
                     }
 
                     break;
+                default:
+                    throw new InvalidOperationException($"Unhandled order type {order.GetType().Name}.");
             }
         }
 
