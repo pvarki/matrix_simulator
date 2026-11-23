@@ -1,3 +1,5 @@
+using System.Globalization;
+using Twin.Sim.Corridors;
 using Twin.Sim.Geometry;
 using Twin.Sim.Orders;
 using Twin.Testing;
@@ -25,6 +27,58 @@ public class DeterminismTests
         var hashes = RecordHashes(seed: 42);
 
         Assert.NotEqual(hashes[0], hashes[^1]);
+    }
+
+    [Fact]
+    public void State_hash_is_the_same_under_fi_FI_and_en_US()
+    {
+        var sim = Scenario.Create().WithUnit("alpha", at: new(100, 100)).Build();
+        sim.Order("alpha", new MoveTo(new Vec2(600.5, 550.25))).Step();
+
+        var english = HashUnder(sim, "en-US");
+        var finnish = HashUnder(sim, "fi-FI");
+
+        Assert.Equal(english, finnish);
+    }
+
+    [Fact]
+    public void Corridor_orders_that_differ_only_in_a_hard_boundary_hash_differently()
+    {
+        // Both boundaries lie outside the outer limit (y from 1 to 21), so they cannot change the route.
+        var low = CorridorSim(boundaryY: 0.5);
+        var high = CorridorSim(boundaryY: 0.6);
+
+        Assert.Equal(low.Unit("alpha").Position, high.Unit("alpha").Position);
+        Assert.Equal(low.Unit("alpha").Velocity, high.Unit("alpha").Velocity);
+        Assert.NotEqual(low.Simulation.ComputeStateHash(), high.Simulation.ComputeStateHash());
+    }
+
+    private static ulong HashUnder(ScenarioRun sim, string culture)
+    {
+        var previous = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
+            return sim.Simulation.ComputeStateHash();
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previous;
+        }
+    }
+
+    private static ScenarioRun CorridorSim(double boundaryY)
+    {
+        var sim = Scenario.Create()
+            .WithTerrain(TestMap.Create(widthMeters: 60, heightMeters: 20).Build())
+            .WithTickRate(SpecV01.TickRateHz)
+            .WithUnit("alpha", at: new(11, 11), profile: SpecV01.Infantry)
+            .Build();
+        var boundary = new HardBoundary("road", [new Vec2(0, boundaryY), new Vec2(60, boundaryY)], BoundarySource.Order);
+        var corridor = new Corridor(
+            [new Vec2(11, 11), new Vec2(51, 11)], Width: 10, SoftMargin: 5, SoftPenalty: SpecV01.SoftPenalty, HardBoundaries: [boundary]);
+        sim.Order("alpha", new MoveThroughCorridor(corridor)).Step();
+        return sim;
     }
 
     private static List<ulong> RecordHashes(ulong seed)

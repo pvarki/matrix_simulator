@@ -12,6 +12,9 @@ public sealed class DeterministicRandom
     /// <summary>Creates a generator from a seed.</summary>
     public DeterministicRandom(ulong seed) => _state = seed;
 
+    /// <summary>The generator's current state, for the state hash.</summary>
+    internal ulong State => _state;
+
     /// <summary>Next 64-bit value.</summary>
     public ulong NextUInt64()
     {

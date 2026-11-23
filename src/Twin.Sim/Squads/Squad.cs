@@ -227,6 +227,86 @@ public sealed class Squad
     internal void SetTeamLeader(int team, string? unitId) => _teamLeaders[team] = unitId;
 
     /// <summary>
+    /// Adds every mutable field to the state hash. The definition, teams and members are configuration and left out;
+    /// <c>_detached</c> goes in through <see cref="IsFollowing"/>. A new mutable field belongs here.
+    /// </summary>
+    internal void AddTo(StateHasher hash)
+    {
+        hash.Add(Id);
+        hash.Add(LeaderId);
+        hash.AddAll(_teamLeaders, hash.Add);
+        hash.Add((long)Formation);
+        hash.Add(LeaderHeld);
+        hash.Add(MovementStarted);
+        hash.AddAll(LeaderTrail, hash.Add);
+        hash.Add(TrailLeaderId);
+        hash.Add(Corridor is not null);
+        Corridor?.AddTo(hash);
+        hash.Add(IsHalted);
+        hash.Add(SuspendedOrder);
+        hash.AddAll(PendingReports, report =>
+        {
+            hash.Add(report.ReporterId);
+            hash.Add(report.EnemyId);
+            hash.Add(report.EnemyPosition);
+            hash.Add(report.Due);
+            hash.Add(report.IsRelay);
+            hash.Add((long?)report.Class);
+        });
+        hash.Add(EnemyEstimate.Fighters);
+        hash.Add(EnemyEstimate.HeavyMachineGun);
+        hash.AddAll(HaltedFor, hash.Add);
+        hash.AddAll(Members, member =>
+        {
+            hash.Add((long)FormationOf(member.UnitId));
+            hash.Add(IsFollowing(member.UnitId));
+        });
+        hash.AddAll(_permits, permit =>
+        {
+            hash.Add(permit.BoundaryId);
+            hash.Add(permit.At);
+            hash.Add(permit.Radius);
+        });
+        hash.AddAll(_knowsOrder, hash.Add);
+        hash.AddAll(_refused, hash.Add);
+        hash.Add(MovementOrder);
+        hash.Add(OrderRequestedAt);
+        hash.Add(PendingRequest is not null);
+        if (PendingRequest is { } request)
+        {
+            hash.Add(request.UnitId);
+            hash.Add(request.BoundaryId);
+            hash.Add(request.At);
+            hash.Add(request.AskedAt);
+            hash.Add(request.LeaderAskedAt);
+            hash.Add(request.HalfWidth);
+        }
+
+        hash.Add(EdgeDeployment is not null);
+        EdgeDeployment?.AddTo(hash);
+        hash.AddAll(Deliveries, delivery =>
+        {
+            hash.Add(delivery.UnitId);
+            hash.Add(delivery.CommandId);
+            hash.Add(delivery.Command);
+            hash.Add(delivery.Due);
+            hash.AddAll(delivery.RelayTo, hash.Add);
+        });
+        hash.AddAll(TeamTakeovers, takeover => AddTakeover(hash, takeover));
+        AddTakeover(hash, LeaderTakeover);
+    }
+
+    private static void AddTakeover(StateHasher hash, Takeover? takeover)
+    {
+        hash.Add(takeover is not null);
+        if (takeover is not null)
+        {
+            hash.Add(takeover.UnitId);
+            hash.Add(takeover.Due);
+        }
+    }
+
+    /// <summary>
     /// A member asked to cross <paramref name="BoundaryId"/> at <paramref name="At"/>; the leader passes it on after the
     /// relay time (<paramref name="LeaderAskedAt"/> once it has).
     /// </summary>

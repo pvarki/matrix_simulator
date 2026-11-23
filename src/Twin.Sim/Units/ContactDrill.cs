@@ -25,4 +25,17 @@ internal sealed class ContactDrill(double startedAt, Order? suspendedOrder, Post
     public bool HeadingForFiringPosition { get; set; }
 
     public bool AtFiringPosition { get; set; }
+
+    /// <summary>Adds every field to the state hash.</summary>
+    public void AddTo(StateHasher hash)
+    {
+        hash.Add(StartedAt);
+        hash.Add(SuspendedOrder);
+        hash.Add((long)PostureBefore);
+        hash.Add(SnapShotsFired);
+        hash.AddAll(Route, hash.Add);
+        hash.Add(Next);
+        hash.Add(HeadingForFiringPosition);
+        hash.Add(AtFiringPosition);
+    }
 }

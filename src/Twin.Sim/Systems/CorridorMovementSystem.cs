@@ -408,4 +408,37 @@ internal sealed class CorridorProgress(MoveThroughCorridor order)
     public double DeploymentCommandedAt { get; set; }
 
     public int Next { get; set; }
+
+    /// <summary>Adds every field to the state hash.</summary>
+    public void AddTo(StateHasher hash)
+    {
+        hash.Add(Order);
+        hash.Add((long)State);
+        hash.AddAll(Permits, permit =>
+        {
+            hash.Add(permit.BoundaryId);
+            hash.Add(permit.At);
+            hash.Add(permit.Radius);
+        });
+        hash.Add(Refused);
+        AddCrossing(hash, Request);
+        hash.Add(RequestedAt);
+        hash.Add(SquadHalfWidth);
+        hash.AddAll(Route, hash.Add);
+        AddCrossing(hash, EdgeCrossing);
+        hash.Add(Deployment is not null);
+        Deployment?.AddTo(hash);
+        hash.Add(DeploymentCommandedAt);
+        hash.Add(Next);
+    }
+
+    private static void AddCrossing(StateHasher hash, BoundaryCrossing? crossing)
+    {
+        hash.Add(crossing is not null);
+        if (crossing is not null)
+        {
+            hash.Add(crossing.BoundaryId);
+            hash.Add(crossing.At);
+        }
+    }
 }

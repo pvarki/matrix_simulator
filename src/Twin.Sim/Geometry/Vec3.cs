@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Twin.Sim.Geometry;
 
 /// <summary>
@@ -28,5 +30,5 @@ public readonly record struct Vec3(double X, double Y, double Z)
     public static Vec3 operator *(Vec3 v, double s) => new(v.X * s, v.Y * s, v.Z * s);
 
     /// <inheritdoc />
-    public override string ToString() => $"({X:0.###}, {Y:0.###}, {Z:0.###})";
+    public override string ToString() => string.Create(CultureInfo.InvariantCulture, $"({X:0.###}, {Y:0.###}, {Z:0.###})");
 }

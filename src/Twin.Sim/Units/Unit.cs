@@ -267,4 +267,66 @@ public sealed class Unit
 
     /// <summary>Convenience: true when <see cref="Activity"/> is <see cref="UnitActivity.Idle"/>.</summary>
     public bool IsIdle => Activity == UnitActivity.Idle;
+
+    /// <summary>
+    /// Adds every mutable field to the state hash. Immutable configuration (<see cref="Combatant"/>, <see cref="Profile"/>,
+    /// <see cref="MaxSpeedMps"/>, <see cref="CombatRules"/>) is left out. A new mutable field belongs here.
+    /// </summary>
+    internal void AddTo(StateHasher hash)
+    {
+        hash.Add(Id);
+        hash.Add(Position);
+        hash.Add(Velocity);
+        hash.Add((long)Activity);
+        hash.Add((long)Health);
+        hash.Add((long)Posture);
+        hash.Add(IsSuppressed);
+        hash.Add(IsHeavilySuppressed);
+        hash.Add(SuppressionPressure);
+        hash.Add((long)DrillStage);
+        hash.Add(IsAwaitingOrders);
+        hash.Add(RoundsLeft);
+        hash.Add(CurrentOrder);
+        hash.Add(WatchDirection);
+        hash.Add(IsAlerted);
+        hash.Add(HoldsWatch);
+        hash.Add(WatchTarget);
+        hash.Add((long?)PostureBeforeAlert);
+        hash.AddAll(Spotted, hash.Add);
+        hash.AddAll(Reported, hash.Add);
+        hash.AddAll(SpotProgress, entry =>
+        {
+            hash.Add(entry.Key);
+            hash.Add(entry.Value);
+        });
+        hash.AddAll(KnownEnemies, entry =>
+        {
+            hash.Add(entry.Key);
+            hash.Add(entry.Value);
+        });
+        hash.Add(Heading);
+        hash.Add(KnowsHeavyMachineGun);
+        hash.Add((long?)PostureAfterDrill);
+        hash.Add(CorridorProgress is not null);
+        CorridorProgress?.AddTo(hash);
+        hash.Add((long)DesiredPosture);
+        hash.Add(PostureChangeUntil);
+        hash.Add(PinnedUntil);
+        hash.Add(NextShotTime);
+        hash.Add(FlashUntil);
+        hash.AddAll(Attackers, hash.Add);
+        hash.AddAll(KnownAttackers, hash.Add);
+        hash.Add(Drill is not null);
+        Drill?.AddTo(hash);
+        hash.Add(WatchesSectors);
+        hash.Add((long)ActivityBeforeCombat);
+        hash.Add(HeldBySquad);
+        hash.Add(SquadSpeedFactor);
+        hash.AddAll(ObservationSectors, sector =>
+        {
+            hash.Add(sector.Centre);
+            hash.Add(sector.WidthDegrees);
+        });
+        hash.Add(WatchesAir);
+    }
 }
