@@ -27,7 +27,7 @@ namespace Twin.Sim.Systems;
 /// command on, or when its takeover starts. A squad posture command that reaches a member in the drill is taken when the
 /// drill ends.
 /// </summary>
-public sealed class SquadSystem : ISimSystem
+internal sealed class SquadSystem : ISimSystem
 {
     /// <inheritdoc />
     public void Update(Simulation simulation, double dtSeconds)

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Twin.Sim.Combat;
 using Twin.Sim.Corridors;
 using Twin.Sim.Geometry;
@@ -31,6 +32,8 @@ public sealed record MoveTo(Vec2 Destination) : Order
 /// It becomes idle on that tick, or, if it is in a combat state (suppressed, pinned, changing posture), once that
 /// state ends. Accepted for an idle unit, where it has no effect.
 /// </summary>
+[SuppressMessage("Naming", "CA1716:Identifiers should not match keywords",
+    Justification = "C#-only codebase; Stop is the order's domain name used in tests, the state hash and docs")]
 public sealed record Stop : Order
 {
     internal override void AddTo(StateHasher hash)

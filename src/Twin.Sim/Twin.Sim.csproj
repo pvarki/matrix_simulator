@@ -7,7 +7,6 @@
   -->
   <PropertyGroup>
     <RootNamespace>Twin.Sim</RootNamespace>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Twin.Sim.Tests" />

@@ -4,7 +4,6 @@ using Twin.Sim;
 using Twin.Sim.Combat;
 using Twin.Sim.Events;
 using Twin.Sim.Geometry;
-using Twin.Sim.Orders;
 using Twin.Sim.World;
 using Twin.Testing;
 using Xunit.Abstractions;

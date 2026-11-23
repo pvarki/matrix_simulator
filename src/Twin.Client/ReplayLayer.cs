@@ -298,6 +298,7 @@ public partial class ReplayLayer : Node2D
         {
             Posture.Prone => 4f,
             Posture.Crouching => 5f,
+            Posture.Standing => 6f,
             _ => 6f,
         };
         if (agent.Health == Health.OutOfAction)
@@ -325,6 +326,7 @@ public partial class ReplayLayer : Node2D
         {
             Health.Pinned => new Color(1f, 0.6f, 0.1f),
             Health.Wounded => new Color(1f, 0.2f, 0.2f),
+            Health.Unhurt or Health.OutOfAction => Colors.Black,
             _ => Colors.Black,
         };
         DrawArc(at, radius + 1, 0, Mathf.Tau, 24, ring, agent.Suppressed || agent.Health != Health.Unhurt ? 2.5f : 1f);

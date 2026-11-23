@@ -346,7 +346,7 @@ public static class EventLog
 public static class EventReplay
 {
     /// <summary>Events this close after the requested time still count, so 0.15 s at 20 Hz includes tick 3 (0.15000000000000002 s).</summary>
-    public const double TimeTolerance = 1e-9;
+    public const double TimeTolerance = Tolerance.Epsilon;
 
     /// <summary>
     /// Every agent's position, activity, health, posture, suppression and drill stage, and every squad's leaders,

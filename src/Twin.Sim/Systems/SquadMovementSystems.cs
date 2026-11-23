@@ -17,7 +17,7 @@ namespace Twin.Sim.Systems;
 /// its slot, until every member is within <see cref="SquadDoctrine.RegroupMeters"/> of it. Runs after the members have
 /// moved (<see cref="SquadFollowSystem"/>) and before the leader moves, so it judges where the members are now.
 /// </summary>
-public sealed class SquadCohesionSystem : ISimSystem
+internal sealed class SquadCohesionSystem : ISimSystem
 {
     /// <inheritdoc />
     public void Update(Simulation simulation, double dtSeconds)
@@ -192,7 +192,7 @@ public sealed class SquadCohesionSystem : ISimSystem
 /// leader moves: members head for their slots around where the leader is at the start of the step,
 /// and the leader's trail is recorded.
 /// </summary>
-public sealed class SquadFollowSystem : ISimSystem
+internal sealed class SquadFollowSystem : ISimSystem
 {
     /// <summary>Extra length of the leader's trail kept beyond the deepest possible slot (a file), in metres.</summary>
     private const double TrailMarginMeters = 50;
@@ -282,7 +282,7 @@ public sealed class SquadFollowSystem : ISimSystem
 
         var previous = member.Position;
         var position = previous.Xy;
-        if (member.IsAlerted || position.DistanceTo(slot) <= 1e-9)
+        if (member.IsAlerted || position.DistanceTo(slot) <= Tolerance.Epsilon)
         {
             member.Velocity = Vec3.Zero;
             CombatQueries.SetActivity(member, UnitActivity.Idle);
@@ -300,7 +300,7 @@ public sealed class SquadFollowSystem : ISimSystem
             {
                 goRound = true; // refused under this order: it finds a way round, which the path search keeps to
             }
-            else if (position.DistanceTo(stopAt) > 1e-9)
+            else if (position.DistanceTo(stopAt) > Tolerance.Epsilon)
             {
                 slot = stopAt; // S2b: it walks up to the boundary first
             }
@@ -461,7 +461,7 @@ public sealed class SquadFollowSystem : ISimSystem
             var waypoints = new List<Vec2> { start };
             foreach (var point in path.Waypoints.Append(reachable))
             {
-                if (point.DistanceTo(waypoints[^1]) > 1e-9)
+                if (point.DistanceTo(waypoints[^1]) > Tolerance.Epsilon)
                 {
                     waypoints.Add(point);
                 }

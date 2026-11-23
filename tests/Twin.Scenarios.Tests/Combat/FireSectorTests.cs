@@ -1,5 +1,4 @@
 using Twin.Sim.Combat;
-using Twin.Sim.Events;
 using Twin.Sim.Geometry;
 using Twin.Sim.Orders;
 using Twin.Testing;

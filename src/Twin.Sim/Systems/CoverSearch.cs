@@ -56,8 +56,8 @@ internal static class CoverSearch
 
         var candidates = grid.Reached().ToList();
         IEnumerable<int> order = forward
-            ? candidates.Where(n => grid.Point(n).DistanceTo(nearestAttacker.Position.Xy) <= here + 1e-9)
-                .Concat(candidates.Where(n => grid.Point(n).DistanceTo(nearestAttacker.Position.Xy) > here + 1e-9))
+            ? candidates.Where(n => grid.Point(n).DistanceTo(nearestAttacker.Position.Xy) <= here + Tolerance.Epsilon)
+                .Concat(candidates.Where(n => grid.Point(n).DistanceTo(nearestAttacker.Position.Xy) > here + Tolerance.Epsilon))
             : candidates;
         foreach (var node in order)
         {
@@ -70,7 +70,7 @@ internal static class CoverSearch
         return null;
     }
 
-    private static IReadOnlyList<IReadOnlyList<Vec2>> BoundariesOf(Unit agent) =>
+    private static List<IReadOnlyList<Vec2>> BoundariesOf(Unit agent) =>
         (agent.CurrentOrder ?? agent.Drill?.SuspendedOrder) is MoveThroughCorridor corridor
             ? corridor.Corridor.HardBoundaries.Select(b => b.Line).ToList()
             : [];
@@ -142,7 +142,7 @@ internal static class CoverSearch
                 foreach (var (di, dj) in Steps)
                 {
                     var (i, j) = (I(from) + di, J(from) + dj);
-                    if (Math.Abs(i) > _half || Math.Abs(j) > _half || Math.Sqrt((i * i) + (j * j)) * _spacing > _radius + 1e-9)
+                    if (Math.Abs(i) > _half || Math.Abs(j) > _half || Math.Sqrt((i * i) + (j * j)) * _spacing > _radius + Tolerance.Epsilon)
                     {
                         continue;
                     }

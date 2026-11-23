@@ -3,7 +3,6 @@ using Twin.Sim.Corridors;
 using Twin.Sim.Events;
 using Twin.Sim.Geometry;
 using Twin.Sim.Orders;
-using Twin.Sim.Squads;
 using Twin.Testing;
 
 namespace Twin.Scenarios.Tests.Squad;

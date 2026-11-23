@@ -2,7 +2,6 @@ using Twin.Sim.Combat;
 using Twin.Sim.Command;
 using Twin.Sim.Geometry;
 using Twin.Sim.Orders;
-using Twin.Sim.Scenarios;
 using Twin.Sim.Squads;
 using Twin.Testing;
 

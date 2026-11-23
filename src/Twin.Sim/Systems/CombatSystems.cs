@@ -13,7 +13,7 @@ namespace Twin.Sim.Systems;
 /// below a quarter of the threshold, keeps pinned and suppressed agents prone, and carries out posture changes, which
 /// take the rules' change time. Runs before movement, so an agent that may move again does so in the same step.
 /// </summary>
-public sealed class CombatStatusSystem : ISimSystem
+internal sealed class CombatStatusSystem : ISimSystem
 {
     /// <inheritdoc />
     public void Update(Simulation simulation, double dtSeconds)
@@ -95,7 +95,7 @@ public sealed class CombatStatusSystem : ISimSystem
 /// agent that may return fire. A shot may hit: the first hit pins the target, a second puts it out of action. Units act
 /// in id order and every shot draws one number, so a run is deterministic.
 /// </summary>
-public sealed class FireSystem : ISimSystem
+internal sealed class FireSystem : ISimSystem
 {
     /// <summary>Rounds passing farther than this many crack radii add less than 1e-4 of their pressure, so they are ignored.</summary>
     private const double PressureCutoffRadii = 10;
@@ -197,7 +197,7 @@ public sealed class FireSystem : ISimSystem
 
     /// <summary>Rounds kept in reserve: the doctrine's share of the rounds carried, rounded up.</summary>
     private static int Reserve(Simulation simulation, Combatant combatant) =>
-        (int)Math.Ceiling((simulation.Config.Combat.Doctrine.Drill.ReserveFraction * combatant.Weapon.Rounds) - 1e-9);
+        (int)Math.Ceiling((simulation.Config.Combat.Doctrine.Drill.ReserveFraction * combatant.Weapon.Rounds) - Tolerance.Epsilon);
 
     private static Unit? Nearest(Simulation simulation, Unit shooter, IEnumerable<Unit> candidates) =>
         candidates
@@ -352,7 +352,7 @@ public sealed class FireSystem : ISimSystem
 internal static class CombatQueries
 {
     /// <summary>Tolerance when comparing simulated times computed in different ways.</summary>
-    public const double TimeEpsilon = 1e-9;
+    public const double TimeEpsilon = Tolerance.Epsilon;
 
     private static readonly UnitActivity[] CombatActivities =
         [UnitActivity.Suppressed, UnitActivity.Pinned, UnitActivity.OutOfAction, UnitActivity.ChangingPosture];
@@ -523,6 +523,7 @@ internal static class CombatQueries
             Health.Pinned => UnitActivity.Pinned,
             _ when unit.IsSuppressed => UnitActivity.Suppressed,
             _ when unit.PostureChangeUntil is not null => UnitActivity.ChangingPosture,
+            Health.Unhurt or Health.Wounded => null,
             _ => null,
         };
 

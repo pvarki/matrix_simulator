@@ -10,15 +10,18 @@ namespace Twin.Sim.Units;
 /// <param name="WidthDegrees">The sector's full width in degrees.</param>
 public sealed record ObservationSector(Vec2 Centre, double WidthDegrees)
 {
+    /// <summary>Directions this many degrees outside the edge still count, so rounding in the angle keeps edges included.</summary>
+    private const double EdgeToleranceDegrees = 1e-6;
+
     /// <summary>True if the map direction <paramref name="direction"/> lies within the sector (edges included).</summary>
     public bool Covers(Vec2 direction)
     {
-        if (direction.Length <= 1e-12)
+        if (direction.Length <= Tolerance.Epsilon)
         {
             return false;
         }
 
         var cos = Math.Clamp(Centre.Normalized().Dot(direction.Normalized()), -1, 1);
-        return Math.Acos(cos) * 180 / Math.PI <= (WidthDegrees / 2) + 1e-6;
+        return Math.Acos(cos) * 180 / Math.PI <= (WidthDegrees / 2) + EdgeToleranceDegrees;
     }
 }

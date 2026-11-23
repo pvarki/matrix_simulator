@@ -33,7 +33,7 @@ internal static class EdgeDeployment
     public static List<Vec2> RouteToEdge(IWorldQuery world, IReadOnlyList<Vec2> route, Vec2 crossingAt, double insetMeters)
     {
         var end = 1;
-        while (end < route.Count - 1 && route[end].DistanceTo(crossingAt) > 1e-9)
+        while (end < route.Count - 1 && route[end].DistanceTo(crossingAt) > Tolerance.Epsilon)
         {
             end++;
         }
@@ -53,7 +53,7 @@ internal static class EdgeDeployment
             if (DistanceInside(world, samples[i].Point, insetMeters + 1) >= insetMeters)
             {
                 var path = route.Take(samples[i].Segment).ToList();
-                if (path.Count == 0 || path[^1].DistanceTo(samples[i].Point) > 1e-9)
+                if (path.Count == 0 || path[^1].DistanceTo(samples[i].Point) > Tolerance.Epsilon)
                 {
                     path.Add(samples[i].Point);
                 }
@@ -167,7 +167,7 @@ internal static class EdgeDeployment
     /// </summary>
     private static Vec2 Outward(IWorldQuery world, Vec2 leaderAt, Vec2 crossingAt)
     {
-        var toCrossing = (crossingAt - leaderAt).Length > 1e-9 ? (crossingAt - leaderAt).Normalized() : new Vec2(1, 0);
+        var toCrossing = (crossingAt - leaderAt).Length > Tolerance.Epsilon ? (crossingAt - leaderAt).Normalized() : new Vec2(1, 0);
         var points = new List<Vec2>();
         var cell = world.CellSize;
         var reach = (int)Math.Ceiling(EdgeFitMeters / cell);

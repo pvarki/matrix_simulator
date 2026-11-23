@@ -127,6 +127,7 @@ public sealed record CombatRules(
     /// <summary>The values of a posture.</summary>
     public PostureValues For(Posture posture) => posture switch
     {
+        Posture.Standing => Standing,
         Posture.Crouching => Crouching,
         Posture.Prone => Prone,
         _ => Standing,

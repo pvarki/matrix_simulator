@@ -3,7 +3,6 @@ using System.Text;
 using Godot;
 using Twin.Sim.Corridors;
 using Twin.Sim.Events;
-using Twin.Sim.Geometry;
 using Twin.Sim.Scenarios;
 using Twin.Sim.World;
 
