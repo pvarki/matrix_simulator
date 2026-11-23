@@ -5,8 +5,9 @@
 #   docker build -f docker/test.Dockerfile -t twin-test . && docker run --rm twin-test
 #
 # The SDK tag matches global.json (same 10.0.4xx feature band; bump both together).
+# The digest pins the exact image.
 # Restore happens at build time, so the timed run is build + test only.
-FROM mcr.microsoft.com/dotnet/sdk:10.0.403
+FROM mcr.microsoft.com/dotnet/sdk:10.0.403@sha256:212fe4cb74627d5adf9817a4088906ae3edff1bd853bb27565d4b46731efe61e
 
 ENV DOTNET_CLI_TELEMETRY_OPTOUT=1 \
     DOTNET_NOLOGO=1 \
