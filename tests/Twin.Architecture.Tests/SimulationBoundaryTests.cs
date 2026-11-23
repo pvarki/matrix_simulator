@@ -66,6 +66,22 @@ public class SimulationBoundaryTests
         }
     }
 
+    [Fact]
+    public void Simulation_systems_are_not_public()
+    {
+        // Systems are implementation details run by Simulation; callers use orders and state (S9).
+        // The compiler allows a public class to implement the internal ISimSystem, so check it here.
+        var systemInterface = SimAssembly.GetType("Twin.Sim.Systems.ISimSystem", throwOnError: true)!;
+        var systems = SimAssembly.GetTypes().Where(t => systemInterface.IsAssignableFrom(t)).ToList();
+        Assert.NotEmpty(systems);
+
+        var visible = systems.Where(t => t.IsVisible).Select(t => t.FullName).Order(StringComparer.Ordinal).ToList();
+        if (visible.Count > 0)
+        {
+            Assert.Fail("Simulation systems must be internal, but these are public: " + string.Join(", ", visible) + ".");
+        }
+    }
+
     private static readonly (Regex Pattern, string Reason)[] BannedApis =
     [
         (new Regex(@"\bDateTime(Offset)?\.(Now|UtcNow|Today)\b"), "wall-clock time; use Simulation.TimeSeconds"),
