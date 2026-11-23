@@ -28,7 +28,7 @@ public sealed record MovementProfile(
     /// <summary>The fastest base speed of any class.</summary>
     public double MaxBaseSpeed => Math.Max(Math.Max(Math.Max(RoadMps, OpenMps), Math.Max(FieldMps, ForestMps)), BogMps);
 
-    /// <summary>Base speed on a terrain class; 0 for impassable classes.</summary>
+    /// <summary>Base speed on a terrain class; 0 for impassable classes (water, building).</summary>
     public double BaseSpeed(TerrainClass terrain) => terrain switch
     {
         TerrainClass.Road => RoadMps,
@@ -36,7 +36,8 @@ public sealed record MovementProfile(
         TerrainClass.Field => FieldMps,
         TerrainClass.Forest => ForestMps,
         TerrainClass.Bog => BogMps,
-        _ => 0,
+        TerrainClass.Water or TerrainClass.Building => 0,
+        _ => throw new ArgumentOutOfRangeException(nameof(terrain), terrain, null),
     };
 
     /// <summary>

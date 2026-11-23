@@ -124,19 +124,26 @@ public sealed record SuppressionRules(
     public ExperienceValues For(Experience experience) => experience switch
     {
         Experience.Conscript => Conscript,
+        Experience.Regular => Regular,
         Experience.SpecialForces => SpecialForces,
-        _ => Regular,
+        _ => throw new ArgumentOutOfRangeException(nameof(experience), experience, null),
     };
 
     /// <summary>The values of a fire mode.</summary>
-    public FireModeValues For(FireMode mode) => mode == FireMode.Snap ? Snap : Aimed;
+    public FireModeValues For(FireMode mode) => mode switch
+    {
+        FireMode.Aimed => Aimed,
+        FireMode.Snap => Snap,
+        _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null),
+    };
 
     /// <summary>The cover factor of a posture.</summary>
     public double Cover(Posture posture) => posture switch
     {
+        Posture.Standing => StandingCover,
         Posture.Crouching => CrouchingCover,
         Posture.Prone => ProneCover,
-        _ => StandingCover,
+        _ => throw new ArgumentOutOfRangeException(nameof(posture), posture, null),
     };
 }
 
