@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using Twin.Acceptance.Tests.Performance;
 using Twin.Sim;
 using Twin.Sim.Combat;
 using Twin.Sim.Events;
@@ -15,8 +16,12 @@ namespace Twin.Acceptance.Tests.Combat;
 /// Shooting on the real MML area <c>scenarios/st1</c> (backlog 0002, K). The points were chosen from the elevation
 /// model: K1 has a hill about 20 m above the sight line between the two agents, and K2 is a clear line over a field.
 /// </summary>
+[Collection(TimedCollection.Name)]
 public class EngagementOnSt1Tests(ITestOutputHelper output)
 {
+    // K3: ≈5× the slower of the Debug and Release times measured on 2026-11-23 (fastest of 3), rounded up.
+    private const double SightQueryBudgetMs = 1700;
+
     private static readonly LoadedWorld St1 = ScenarioOnDisk.Load("st1").Definition.World;
 
     private static Vec2 Etrs(double easting, double northing) => St1.Origin.ToLocal(new EtrsPoint(easting, northing));
@@ -88,13 +93,21 @@ public class EngagementOnSt1Tests(ITestOutputHelper output)
         }
 
         var pairs = Enumerable.Range(0, Queries).Select(_ => (RandomPoint(1.6), RandomPoint(1.0))).ToList();
-        var started = Stopwatch.GetTimestamp();
-        var visible = pairs.Count(pair => LineOfSight.Between(world, pair.Item1, pair.Item2, SpecShooting.Rules).IsVisible(SpecShooting.Rules));
-        var elapsed = Stopwatch.GetElapsedTime(started);
+        var elapsed = TimeSpan.MaxValue;
+        var visible = 0;
+        for (var run = 0; run < 3; run++) // the fastest of three: the least disturbed by other work on the machine
+        {
+            var started = Stopwatch.GetTimestamp();
+            visible = pairs.Count(pair => LineOfSight.Between(world, pair.Item1, pair.Item2, SpecShooting.Rules).IsVisible(SpecShooting.Rules));
+            var time = Stopwatch.GetElapsedTime(started);
+            elapsed = time < elapsed ? time : elapsed;
+        }
 
         output.WriteLine(string.Create(CultureInfo.InvariantCulture,
             $"K3 st1: {Queries} line-of-sight queries in {elapsed.TotalMilliseconds:0.0} ms, {visible} visible"));
         Assert.InRange(visible, 1, Queries - 1);
+        Assert.True(elapsed.TotalMilliseconds <= SightQueryBudgetMs, string.Create(CultureInfo.InvariantCulture,
+            $"K3: {elapsed.TotalMilliseconds:0.0} ms is over the budget of {SightQueryBudgetMs} ms"));
     }
 
     private static SortedSet<(string, string)> Visibility(Simulation simulation)
