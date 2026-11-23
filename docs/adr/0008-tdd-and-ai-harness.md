@@ -13,6 +13,8 @@ similar ways.
    (docs/workflow.md).
 2. Three layers of control: instructions (`AGENTS.md`, skills), automated enforcement (hooks, architecture and
    determinism tests), and a universal gate (CI plus human review) that applies whatever tool was used.
+   - Part of that gate is a CI commit check (`tools/check-test-edits.cs`): a commit that is not `test: ...` and
+     modifies or deletes an existing test needs a `Test-change-approved-by: <name>` line in its message.
 3. Claude Code is the primary harness because its hooks let us enforce rules, not just state them:
    - `SessionStart` tells the agent the current phase,
    - `PreToolUse` (`guard.cs`) locks `src/` in spec phase and existing tests in implement phase, and keeps the

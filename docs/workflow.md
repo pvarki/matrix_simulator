@@ -38,9 +38,13 @@ enforce it; with other tools it is a convention. In every case CI and code revie
    - If the tests pass before you add behaviour, do a mutation check: break the code that makes them pass,
      run the tests, record which tests fail, then restore the code. A test that never fails does not
      show that it can catch an error.
+   - An implementation commit does not touch existing tests. If a person agrees that an existing test must
+     change, the commit that changes it carries a `Test-change-approved-by: <name>` line (see below).
 5. **Refactor** while green, then `./dev check`.
 6. **Pull request:** small and focused, linked to the ticket, template filled in. CI must be green and one
    person must approve. Reviewers look at tests first, then implementation.
+   `.github/CODEOWNERS` asks a code owner to review tests, the harness and the build files, but "Require review
+   from Code Owners" stays off until the team names a second owner or a team.
 
 ## Using AI coding agents
 
@@ -61,6 +65,22 @@ enforce it; with other tools it is a convention. In every case CI and code revie
 - Branches: `feature/…`, `fix/…`, `chore/…`. Main is protected: merge via pull request only.
 - Commit messages: `type: summary` with types `feat`, `fix`, `test`, `refactor`, `docs`, `chore`.
 - One package upgrade per pull request.
+- A commit whose subject does not start with `test:` must not modify or delete existing files under `tests/`
+  (new test files are fine), unless its message has a line `Test-change-approved-by: <name>` naming the person
+  who approved the change. The line may sit anywhere in the message, for example after the ticket reference:
+
+  ```
+  feat: suppression slows command
+
+  The drill test waited 2 s too little once suppression delays orders; agreed in review.
+
+  Refs pvarki/markdown-projectmatrix-pm#70
+  Test-change-approved-by: Jane Doe
+  ```
+
+  CI checks every commit of a pull request (`test-edits` job); run the same check locally with
+  `./dev test-edits` (base defaults to `origin/main`). Anyone can type the line: its value is that test changes
+  are named and visible in history. Human review stays the real gate.
 
 ## Changing the rules
 
