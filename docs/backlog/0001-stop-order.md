@@ -1,5 +1,8 @@
 # 0001. Stop order (onboarding validation feature)
 
+**Status:** implemented (2026-11-17, PR #4). Tests: `tests/Twin.Scenarios.Tests/Movement/StopTests.cs`; findings and
+fixes: `docs/onboarding-notes.md`.
+
 **Purpose:** besides adding a feature, this ticket tests whether the walking skeleton works for someone who did
 not build it. Implement it using only the docs, the reference feature and the harness. Write every point of
 confusion or friction in `docs/onboarding-notes.md` as you go; fixing those is part of the task.

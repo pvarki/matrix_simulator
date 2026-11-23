@@ -35,6 +35,7 @@ public void Unit_reaches_hilltop_at_the_terrain_height()
 - Use explicit tolerances in meters when exact equality is not the point.
 - "Has started doing X" and "has finished doing X" are separate tests (e.g. starts moving vs reaches destination).
 - Include invalid-input tests: unknown unit, off-map destination, conflicting orders.
-- Available assertions: `BeAt(Vec2|Vec3, tol)`, `BeIdle()`, `BeMovingToward(Vec2)`, `BeOnGround(terrain)`,
-  `HaveGroundSpeed(mps)`. Add new ones to `tests/Twin.Testing/UnitAssertions.cs` with a clear failure message.
+- Assertions live in `tests/Twin.Testing/*Assertions.cs` (`UnitAssertions.cs` for `sim.Unit(id).Should()`, the others
+  for the rest of the kit). Read them before writing a test; add new ones there with a doc comment and a clear
+  failure message.
 - Keep numbers meaningful: compute expectations from inputs (distance / speed) rather than pasting magic values.

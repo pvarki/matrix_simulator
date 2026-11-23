@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-11-07
+- Amended: 2026-11-22: the map pipeline lives in `prep/` (Python + GDAL in Docker), not `tools/`
 
 ## Decision
 | Concern | Choice | Pinned in |
@@ -12,7 +13,7 @@
 | Tests | xUnit 2 + our scenario kit | `Directory.Packages.props` |
 | Dev tooling | .NET file-based apps (`./dev`, hooks) | `tools/`, `.claude/hooks/` |
 | CI | GitHub Actions, Linux and Windows | `.github/workflows/ci.yml` |
-| Map pipeline (later) | Python + GDAL/rasterio/geopandas, offline | `tools/` |
+| Map pipeline | Python + GDAL, offline, in Docker | `prep/Dockerfile`, `prep/requirements.txt` |
 
 ## Reasons
 - Godot: strong 2D and UI, free MIT licence, light editor. Its weaker high-end 3D does not matter for a top-down view.

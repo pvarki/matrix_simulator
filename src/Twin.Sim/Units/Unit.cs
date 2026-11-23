@@ -166,11 +166,15 @@ public sealed class Unit
 
     /// <summary>
     /// The directions the unit observes (backlog 0004, S2c): set for members of a moving or deployed squad, empty for
-    /// anyone else. Data only for now: seeing does not depend on them until the observation model arrives.
+    /// anyone else. While the unit follows its squad, spotting watches their centres unless something else sets the
+    /// watch first (<c>SpottingSystem</c>, backlog 0004 S5a1).
     /// </summary>
     public IReadOnlyList<ObservationSector> ObservationSectors { get; internal set; } = [];
 
-    /// <summary>True if the unit also watches the air (backlog 0004, S2c; data only, as the sectors).</summary>
+    /// <summary>
+    /// True if the unit also watches the air (backlog 0004, S2c; logged and shown in the replay; spotting does not use
+    /// it).
+    /// </summary>
     public bool WatchesAir { get; internal set; }
 
     /// <summary>True if one of <see cref="ObservationSectors"/> covers the map direction <paramref name="direction"/>.</summary>

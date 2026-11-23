@@ -140,7 +140,7 @@ bog and a field. Leaving forest is a hard boundary, so the agent must ask at lea
 | P1 | Finding a route on 1 × 1 km and on 2 × 2 km takes an acceptable time. | Partial | `P1_pathfinding_time_is_measured_and_recorded` measures and prints but **has no limit**, so it can never fail. A limit has to be decided with the team. |
 | P2 | The whole core test suite runs in Linux (Docker) in under 60 s. | Partial | `./dev docker-test` and the CI job print the time; whether CI fails above 60 s needs checking. |
 | P3 | Preparing a map takes seconds (measured about 0.1 s). | Missing (**new**) | Only measured by hand. |
-| P4 | The visual client runs the whole area at an acceptable frame rate. | Manual | Not measured yet; viewer not built for this area. |
+| P4 | The visual client runs the whole area at an acceptable frame rate. | Manual | Not measured yet. |
 
 ## 6. Combat (backlogs 0002 and 0003)
 

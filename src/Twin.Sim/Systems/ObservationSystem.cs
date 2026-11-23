@@ -5,7 +5,7 @@ using Twin.Sim.Units;
 namespace Twin.Sim.Systems;
 
 /// <summary>
-/// Headings and observation sectors (backlog 0004, S2c; data only until the observation model arrives). Every unit faces
+/// Headings and observation sectors (backlog 0004, S2c; <c>SpottingSystem</c> watches the sectors). Every unit faces
 /// the way it last moved. A member of a squad that is moving or deployed gets sectors, each
 /// <see cref="SquadDoctrine.SectorWidthDegrees"/> wide, and faces the centre of its first:
 /// <list type="bullet">

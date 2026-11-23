@@ -180,6 +180,9 @@ members keep the order of the squad data, team leader first. *(Superseded for th
 that line folded back at its middle. S3 revisits the other formations.)*
 
 ### Combat model additions: machine gun and suppression strength (S4)
+*Superseded on 2026-11-18: 0003 built machine-gun bursts (one `ShotFired`, one draw), suppression per round and light
+and heavy suppression; only the weapon class (WS3) was left, built in S5a2.*
+
 These change the 0002 combat model and are a part of their own, with no squad in the tests. Every 0002 test must
 still pass unchanged.
 
@@ -254,6 +257,10 @@ enemyPosition, weaponClass)`, `EnemyEstimateChanged(squad, fighters, factors)`, 
 level)`. `EventReplay` rebuilds squad, leader, formation, drill and suppression level, so the Godot replay can show
 them.
 
+Built so far: see `src/Twin.Sim/Events/SimEvent.cs`. `SuppressionLevelChanged` is superseded by 0003's
+`SuppressionStarted` and `SuppressionEnded` (S4 below); a member's drill is 0003's `ContactDrillStageChanged`; the
+squad's `DrillStarted`, `DrillEnded` and `BoundImpossible` come with S6.
+
 ### Scenario file
 An optional `squad` section next to the existing single `agent` (schema stays 1):
 
@@ -292,8 +299,10 @@ contact reports and the enemy estimate in the event list. Part of S2 (movement) 
 ## Parts and acceptance criteria (draft)
 
 IDs: `SQ` squad and command, `SM` squad movement, `FO` formations, `WS` weapons and suppression, `UF` under fire,
-`BO` bounding. Squad tests go in `tests/Twin.Scenarios.Tests/Squad/`, S4 tests next to the 0002 tests in
-`tests/Twin.Scenarios.Tests/Combat/` and `tests/Twin.Sim.Tests/Combat/`, acceptance tests on st1 in
+`BO` bounding, `SU` succession and the order brief (S2b), `SP` spotting (S5a1). IDs are unique only within this ticket
+(0003 also has `SU`); filter by class, e.g. `./dev test --filter OrderBriefTests.SU1_`. Squad tests go in
+`tests/Twin.Scenarios.Tests/Squad/`, S4 tests next to the 0002 tests in `tests/Twin.Scenarios.Tests/Combat/` and
+`tests/Twin.Sim.Tests/Combat/`, acceptance tests on st1 in
 `tests/Twin.Acceptance.Tests/Squad/`.
 
 ### S1: squad, roles and chain of command
@@ -720,21 +729,25 @@ the scenario's `world` key. SM10 passes before the implementation (it measures w
 
 ### S4: machine gun and suppression strength
 - WS1 A machine gun fires bursts of `BurstRounds` rounds at its interval; each round is a `ShotFired` with its own
-  hit roll.
-- WS2 The per-round hit probability follows the weapon's curve and is 0 beyond its range (pure).
+  hit roll. *— superseded by 0003's bursts (M5); the range limit is 0002's F2*
+- WS2 The per-round hit probability follows the weapon's curve and is 0 beyond its range (pure). *— superseded by
+  0003's bursts (M5); the range limit is 0002's F2*
 - WS3 The listener of a shot learns the weapon's class.
 - WS4 An agent's suppression level is `Light` after 1–4 rounds in the last 10 s and `Heavy` after 5 or more, and
-  falls back as the rounds age out.
-- WS5 One machine-gun burst makes its target heavily suppressed at once; one rifle needs five shots.
-- WS6 Every 0002 effect of suppression is the same at both levels (no 0002 test changes).
-- WS7 The suppression level is rebuilt from the log.
+  falls back as the rounds age out. *— superseded by 0003's pressure model (SU, D)*
+- WS5 One machine-gun burst makes its target heavily suppressed at once; one rifle needs five shots. *— superseded by
+  0003's pressure model (SU, D)*
+- WS6 Every 0002 effect of suppression is the same at both levels (no 0002 test changes). *— superseded: 0003
+  re-specified 0002's suppression effects*
+- WS7 The suppression level is rebuilt from the log. *— superseded by 0003's pressure model (SU, D)*
 
 ### S5: contact, the enemy estimate and the leader's decisions
 - UF1 A member that is shot at reports contact to the RJ after its reaction delay.
 - UF2 On the first report the RJ commands `TakeCoverAndReturnFire`; every member halts, goes prone and fires at the
-  enemy when it sees it.
+  enemy when it sees it. *— superseded (delivery plan: 0003's drill, no `TakeCoverAndReturnFire`)*
 - UF3 After the RJ's `Advance`, the squad resumes its corridor order in its formation.
-- UF4 Inexperienced members carry out the command later than experienced ones, by the relay delay.
+- UF4 Inexperienced members carry out the command later than experienced ones, by the relay delay. *— covered by SQ3
+  (`ChainOfCommandTests`)*
 - UF5 A lightly or heavily suppressed member acts on a command after `1.5 ×` or `3 ×` its normal delay; a suppressed
   team leader relays that much later.
 - UF6 A heavily suppressed VJ takes command after `3 × t_takeover`.

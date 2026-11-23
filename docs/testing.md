@@ -7,7 +7,11 @@
 | `Twin.Scenarios.Tests` | Behaviour of agents in a simulated world | ms each | most tests |
 | `Twin.Sim.Tests` | Pure logic: terrain sampling, math, random | µs each | many |
 | `Twin.Architecture.Tests` | Structural rules (no engine in sim, no non-determinism) | fast | few, stable |
+| `Twin.Acceptance.Tests` | Acceptance tests on real preprocessed maps in `scenarios/` (also alone: `./dev smoke`) | slowest (path search on real maps) | few |
 | Godot client | Manual play-testing for now; GdUnit4 when the client grows logic | slow | very few |
+
+Test IDs such as `M2` or `SU1` are unique only within their ticket. Filter with the class and end the ID with `_`
+(`--filter` matches substrings, so `SU1` also finds `SU12`): `./dev test --filter FireModeTests.M2_`.
 
 All of `./dev test` should run in seconds. If it gets slow, the tests or the simulation need attention.
 
