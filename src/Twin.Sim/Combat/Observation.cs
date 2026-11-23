@@ -29,7 +29,9 @@ public sealed record ObservationRules(
     /// The starting values (backlog 0004, decision 19): base 1.5 / 1.25 / 1 s, doubled at 100 m, focus ±15°, field of
     /// view ±90°, three times as long outside the focus.
     /// </summary>
-    public static ObservationRules Default { get; } = new(1.5, 1.25, 1.0, 100, 15, 90, 3);
+    public static ObservationRules Default { get; } = new(
+        ConscriptSeconds: 1.5, RegularSeconds: 1.25, SpecialForcesSeconds: 1.0, ReferenceDistanceMeters: 100,
+        FocusHalfAngleDegrees: 15, FieldOfViewHalfAngleDegrees: 90, FieldOfViewFactor: 3);
 
     /// <summary>
     /// No spotting model, as in backlogs 0002 and 0003: a fighter knows every enemy it can see, at once and all round,
@@ -44,7 +46,8 @@ public sealed record ObservationRules(
     public double BaseSeconds(Experience experience) => experience switch
     {
         Experience.Conscript => ConscriptSeconds,
+        Experience.Regular => RegularSeconds,
         Experience.SpecialForces => SpecialForcesSeconds,
-        _ => RegularSeconds,
+        _ => throw new ArgumentOutOfRangeException(nameof(experience), experience, null),
     };
 }

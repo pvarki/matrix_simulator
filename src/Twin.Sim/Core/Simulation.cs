@@ -30,11 +30,16 @@ public sealed class Simulation
     private int _lastCommandId;
 
     /// <summary>Creates a simulation over the given terrain.</summary>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// The configuration has a tick rate that is not positive, a scripted leader or permission rules with a negative or
+    /// non-finite value, or an undefined leader answer.
+    /// </exception>
     public Simulation(ITerrain terrain, SimulationConfig? config = null)
     {
         ArgumentNullException.ThrowIfNull(terrain);
         Terrain = terrain;
         Config = config ?? new SimulationConfig();
+        SetupValidator.Validate(Config);
         Random = new DeterministicRandom(Config.Seed);
 
         // System order is part of the simulation's behaviour (ADR 0013, pinned by SystemOrderTests). Change it
@@ -75,8 +80,12 @@ public sealed class Simulation
     public IReadOnlyCollection<Squad> Squads => _squads.Values;
 
     /// <summary>Places a ground unit on the map. Its height is taken from the terrain.</summary>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="maxSpeedMps"/> is not finite and positive, or <paramref name="position"/> is off the map.
+    /// </exception>
     public Unit AddUnit(string id, Vec2 position, double maxSpeedMps)
     {
+        SetupValidator.ValidateSpeed(maxSpeedMps);
         CheckPlacement(id, position);
         return Place(new Unit(id, position.WithZ(Terrain.HeightAt(position)), maxSpeedMps));
     }
@@ -85,9 +94,14 @@ public sealed class Simulation
     /// Places an agent that moves by a movement profile: terrain-dependent speeds, slope limit and eye height.
     /// Only such agents can take <see cref="MoveThroughCorridor"/> orders.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// A speed, the slope limit or the eye height in <paramref name="profile"/> is negative or not finite, or
+    /// <paramref name="position"/> is off the map.
+    /// </exception>
     public Unit AddUnit(string id, Vec2 position, MovementProfile profile)
     {
         ArgumentNullException.ThrowIfNull(profile);
+        SetupValidator.Validate(profile);
         CheckPlacement(id, position);
         return Place(new Unit(id, position.WithZ(Terrain.HeightAt(position)), profile));
     }
@@ -96,10 +110,18 @@ public sealed class Simulation
     /// Places a fighter (backlog 0002): an agent with a movement profile, a side, rules of engagement and a weapon,
     /// standing and unhurt. Line of sight and hits follow <see cref="SimulationConfig.Combat"/>.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="profile"/> is invalid (as for the overload without a fighter), <paramref name="combatant"/> has an
+    /// undefined side, rules, experience or weapon class, its weapon has a value outside its range (a hit probability
+    /// outside 0–1, a falloff, range or time per shot that is not positive, negative rounds, fewer than one round per
+    /// burst), or <paramref name="position"/> is off the map.
+    /// </exception>
     public Unit AddUnit(string id, Vec2 position, MovementProfile profile, Combatant combatant)
     {
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentNullException.ThrowIfNull(combatant);
+        SetupValidator.Validate(profile);
+        SetupValidator.Validate(combatant);
         CheckPlacement(id, position);
         return Place(new Unit(id, position.WithZ(Terrain.HeightAt(position)), profile, combatant, Config.Combat));
     }

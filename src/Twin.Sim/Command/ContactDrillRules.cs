@@ -13,5 +13,6 @@ public sealed record ContactDrillRules(
     int SnapShots, double CoverSearchMeters, double SearchGridMeters, double FireSectorHalfAngleDegrees, double ReserveFraction)
 {
     /// <summary>The decisions of 2026-11-17: 3 snap shots, 20 m on a 2 m grid, a 60° sector, 20 % in reserve.</summary>
-    public static ContactDrillRules Default { get; } = new(3, 20, 2, 30, 0.2);
+    public static ContactDrillRules Default { get; } = new(
+        SnapShots: 3, CoverSearchMeters: 20, SearchGridMeters: 2, FireSectorHalfAngleDegrees: 30, ReserveFraction: 0.2);
 }

@@ -14,6 +14,14 @@ internal static class OrderValidator
     /// <summary>Throws <see cref="OrderRejectedException"/> if <paramref name="unitId"/> cannot take <paramref name="order"/>.</summary>
     public static void Validate(Simulation simulation, string unitId, Order order)
     {
+        // Only the public orders of this assembly may be issued: not the simulation's internal commands
+        // (DeployAtForestEdge) and not a subclass from another assembly.
+        var type = order.GetType();
+        if (!type.IsPublic || type.Assembly != typeof(Order).Assembly)
+        {
+            throw new OrderRejectedException($"Order type {type.Name} cannot be issued.");
+        }
+
         if (!simulation.TryGetUnit(unitId, out var unit))
         {
             throw new OrderRejectedException($"No unit with id '{unitId}'.");
@@ -42,6 +50,17 @@ internal static class OrderValidator
         if (order is SetSquadFormation { Formation: var formation } && !Enum.IsDefined(formation))
         {
             throw new OrderRejectedException($"Unknown formation {formation}.");
+        }
+
+        var posture = order switch
+        {
+            SetPosture p => p.Posture,
+            SetSquadPosture p => p.Posture,
+            _ => (Posture?)null,
+        };
+        if (posture is { } wanted && !Enum.IsDefined(wanted))
+        {
+            throw new OrderRejectedException($"Unknown posture {wanted}.");
         }
 
         if (order is Rejoin && (simulation.SquadOf(unitId) is not { } own || own.LeaderId == unitId))
