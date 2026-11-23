@@ -4,8 +4,10 @@
 #   ./dev docker-test                     build the image and run the tests, with timing
 #   docker build -f docker/test.Dockerfile -t twin-test . && docker run --rm twin-test
 #
-# The SDK tag matches global.json. Restore happens at build time, so the timed run is build + test only.
-FROM mcr.microsoft.com/dotnet/sdk:10.0.100
+# The SDK tag matches global.json (same 10.0.4xx feature band; bump both together).
+# The digest pins the exact image.
+# Restore happens at build time, so the timed run is build + test only.
+FROM mcr.microsoft.com/dotnet/sdk:10.0.403@sha256:212fe4cb74627d5adf9817a4088906ae3edff1bd853bb27565d4b46731efe61e
 
 ENV DOTNET_CLI_TELEMETRY_OPTOUT=1 \
     DOTNET_NOLOGO=1 \
@@ -14,15 +16,15 @@ ENV DOTNET_CLI_TELEMETRY_OPTOUT=1 \
 WORKDIR /repo
 
 # Project files first, so the restore layer is cached until a project or package version changes.
-COPY global.json Directory.Build.props Directory.Packages.props .editorconfig Twin.sln Twin.Core.slnf ./
-COPY src/Twin.Sim/Twin.Sim.csproj src/Twin.Sim/
-COPY src/Twin.Headless/Twin.Headless.csproj src/Twin.Headless/
-COPY tests/Twin.Testing/Twin.Testing.csproj tests/Twin.Testing/
-COPY tests/Twin.Sim.Tests/Twin.Sim.Tests.csproj tests/Twin.Sim.Tests/
-COPY tests/Twin.Scenarios.Tests/Twin.Scenarios.Tests.csproj tests/Twin.Scenarios.Tests/
-COPY tests/Twin.Architecture.Tests/Twin.Architecture.Tests.csproj tests/Twin.Architecture.Tests/
-COPY tests/Twin.Acceptance.Tests/Twin.Acceptance.Tests.csproj tests/Twin.Acceptance.Tests/
-RUN dotnet restore Twin.Core.slnf
+COPY global.json nuget.config Directory.Build.props Directory.Packages.props .editorconfig Twin.sln Twin.Core.slnf ./
+COPY src/Twin.Sim/Twin.Sim.csproj src/Twin.Sim/packages.lock.json src/Twin.Sim/
+COPY src/Twin.Headless/Twin.Headless.csproj src/Twin.Headless/packages.lock.json src/Twin.Headless/
+COPY tests/Twin.Testing/Twin.Testing.csproj tests/Twin.Testing/packages.lock.json tests/Twin.Testing/
+COPY tests/Twin.Sim.Tests/Twin.Sim.Tests.csproj tests/Twin.Sim.Tests/packages.lock.json tests/Twin.Sim.Tests/
+COPY tests/Twin.Scenarios.Tests/Twin.Scenarios.Tests.csproj tests/Twin.Scenarios.Tests/packages.lock.json tests/Twin.Scenarios.Tests/
+COPY tests/Twin.Architecture.Tests/Twin.Architecture.Tests.csproj tests/Twin.Architecture.Tests/packages.lock.json tests/Twin.Architecture.Tests/
+COPY tests/Twin.Acceptance.Tests/Twin.Acceptance.Tests.csproj tests/Twin.Acceptance.Tests/packages.lock.json tests/Twin.Acceptance.Tests/
+RUN dotnet restore Twin.Core.slnf --locked-mode
 
 COPY . .
 

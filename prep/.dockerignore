@@ -1,0 +1,3 @@
+# ./dev prep builds with prep/ as the context, so the root .dockerignore does not apply here.
+data/
+.env

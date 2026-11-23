@@ -6,7 +6,7 @@ using the team's agreed workflow, so every next feature can follow the same path
 
 ## Quick start
 
-Prerequisites: [.NET SDK 10](https://dotnet.microsoft.com/download) (pinned in `global.json`),
+Prerequisites: [.NET SDK 10.0.403](https://dotnet.microsoft.com/download) or a later 10.0.4xx patch (pinned in `global.json`),
 Git with [Git LFS](https://git-lfs.com), and — only for the visual client —
 [Godot 4.7.2 .NET edition](https://godotengine.org/download/archive/4.7.2-stable/) (where to put it: `GODOT_README.md`).
 

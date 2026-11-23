@@ -1,0 +1,50 @@
+# Dependabot proposes upgrades, one per pull request (ADR 0006), and only after a release is 14 days old.
+# No grouping on purpose. Godot is bumped by hand: its version must match .godot-version.
+# The test image (docker/test.Dockerfile) and global.json must stay in the same SDK feature band: when either PR
+# moves to a new band, bump the other in the same PR. prep/ is not built in CI: before merging a /prep docker or
+# pip PR, run `./dev prep python3 -m pytest --version`.
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+    ignore:
+      - dependency-name: "Godot*"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+
+  - package-ecosystem: dotnet-sdk
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+
+  - package-ecosystem: docker
+    directory: /docker
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+
+  - package-ecosystem: docker
+    directory: /prep
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+
+  - package-ecosystem: pip
+    directory: /prep
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14

@@ -9,6 +9,10 @@
     <Deterministic>true</Deterministic>
     <!-- NuGet vulnerability audit stays on; warnings become errors below. -->
     <NuGetAudit>true</NuGetAudit>
+    <!-- Lock files pin the full restore graph; CI and Docker restore with locked mode. Twin.Client is excluded because
+         Godot.NET.Sdk adds packages only in Debug and the lock file cannot vary by configuration. File-based apps
+         (tools/*.cs) are excluded because they would share one tools/packages.lock.json. -->
+    <RestorePackagesWithLockFile Condition="'$(MSBuildProjectName)' != 'Twin.Client' and '$(FileBasedProgram)' != 'true'">true</RestorePackagesWithLockFile>
   </PropertyGroup>
 
   <!-- The Godot client is excluded: Godot's generated code is outside our control. -->
