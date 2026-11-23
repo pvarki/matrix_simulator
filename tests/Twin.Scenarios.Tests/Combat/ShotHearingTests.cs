@@ -31,6 +31,7 @@ public class ShotHearingTests
         {
             WeaponClass.Rifle => SpecShooting.Rifle,
             WeaponClass.MachineGun => SpecSuppression.MachineGun,
+            WeaponClass.HeavyMachineGun => SpecSuppression.HeavyMachineGun,
             _ => SpecSuppression.HeavyMachineGun,
         };
         var sim = Firing(weapon);

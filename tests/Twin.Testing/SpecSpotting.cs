@@ -68,6 +68,7 @@ public static class SpecSpotting
     public static double BaseSeconds(Experience experience) => experience switch
     {
         Experience.Conscript => ConscriptSeconds,
+        Experience.Regular => RegularSeconds,
         Experience.SpecialForces => SpecialForcesSeconds,
         _ => RegularSeconds,
     };
@@ -75,6 +76,7 @@ public static class SpecSpotting
     /// <summary>The 0002 size factor of a target in the given posture (1, 0.7 or 0.4).</summary>
     public static double SizeFactor(Posture posture) => posture switch
     {
+        Posture.Standing => SpecShooting.Standing.SizeFactor,
         Posture.Crouching => SpecShooting.Crouching.SizeFactor,
         Posture.Prone => SpecShooting.Prone.SizeFactor,
         _ => SpecShooting.Standing.SizeFactor,

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Twin.Sim.Events;
 using Twin.Sim.Geometry;
 using Twin.Sim.Orders;
@@ -15,6 +16,7 @@ namespace Twin.Scenarios.Tests.Squad;
 public class WatchSectorTests
 {
     private static readonly Vec2 Start = new(80, 101);
+    private static readonly string[] LastTwoOfTheFile = ["kk", "t1"];
 
     [Theory]
     [InlineData(SquadFormation.File)]
@@ -89,7 +91,7 @@ public class WatchSectorTests
             if (sim.SpottedBy(id, "red") is { } spotted)
             {
                 Assert.True(heard is not null && heard.Time <= spotted.Time,
-                    $"{id} spotted red at t={spotted.Time} s before hearing of it ({heard?.Time.ToString() ?? "never"})");
+                    $"{id} spotted red at t={spotted.Time} s before hearing of it ({heard?.Time.ToString(CultureInfo.InvariantCulture) ?? "never"})");
             }
         }
 
@@ -104,6 +106,6 @@ public class WatchSectorTests
 
         var first = sim.RedStandsUp().RunUntilAnyoneSpots("red", TimeSpan.FromMinutes(1));
 
-        Assert.Contains(first.AgentId, new[] { "kk", "t1" });
+        Assert.Contains(first.AgentId, LastTwoOfTheFile);
     }
 }

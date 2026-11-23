@@ -1,6 +1,5 @@
 using Twin.Sim.Command;
 using Twin.Sim.Events;
-using Twin.Sim.Geometry;
 using Twin.Sim.Units;
 using Twin.Testing;
 

@@ -98,6 +98,7 @@ public static class SpecSuppression
     public static ExperienceValues For(Experience experience) => experience switch
     {
         Experience.Conscript => Conscript,
+        Experience.Regular => Regular,
         Experience.SpecialForces => SpecialForces,
         _ => Regular,
     };
@@ -105,6 +106,7 @@ public static class SpecSuppression
     /// <summary>Cover factor of a posture: 1 standing, 0.8 crouching, 0.6 prone.</summary>
     public static double Cover(Posture posture) => posture switch
     {
+        Posture.Standing => 1.0,
         Posture.Crouching => 0.8,
         Posture.Prone => 0.6,
         _ => 1.0,
