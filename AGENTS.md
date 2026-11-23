@@ -64,6 +64,8 @@ The TDD phase is set by a human with `./dev phase spec|implement`. Hooks enforce
 - Missing vocabulary (a new assertion, terrain shape, builder option)? Add it to `tests/Twin.Testing`
   in the spec phase, with a doc comment, instead of writing ad-hoc helpers inside a test.
 
+AGENTS.md and the paths in `.claude/human-only` are human-only: agents propose edits in the PR description.
+
 ## Code conventions
 
 - C# latest, nullable on, warnings are errors (except the Godot client). File-scoped namespaces.

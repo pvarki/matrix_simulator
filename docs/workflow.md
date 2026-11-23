@@ -21,6 +21,10 @@ ticket ──> SPEC phase ──> human reviews tests ──> IMPLEMENT phase �
 The phase is a local setting (`./dev phase spec|implement`), set only by a person. In Claude Code, hooks
 enforce it; with other tools it is a convention. In every case CI and code review are the final gate.
 
+With no phase set, the phase is `spec`. `./dev phase spec|implement` also records the current commit as the
+baseline the stop hook checks against, so commit or stash changes under `src/` and `tests/` first; it refuses
+otherwise. Running it again with the same phase re-records the baseline, for example after a merge.
+
 ## Step by step
 
 1. **Pick a ticket** with clear acceptance criteria. If criteria are vague, clarify them first.
@@ -54,6 +58,9 @@ enforce it; with other tools it is a convention. In every case CI and code revie
 - Keep agent sessions scoped to one ticket. Start a new session for a new ticket.
 - If an agent is stuck (the stop hook gives up after three red attempts), take over: the problem is
   usually an unclear test or a missing concept, not a missing line of code.
+- The paths in `.claude/human-only` (the harness, build, solution and CI files) are changed only by people;
+  agents propose such edits in the PR description. At stop, the hook checks everything changed since the
+  baseline, committed or not, so a commit does not hide a locked change.
 - Data rules: synthetic data only in prompts, tests and fixtures (ADR 0008).
 
 ## Commit and branch conventions
