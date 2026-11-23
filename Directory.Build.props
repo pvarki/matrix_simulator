@@ -6,13 +6,19 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- Pinned, not "latest", so an SDK roll-forward cannot add new errors. -->
+    <AnalysisLevel>10.0-recommended</AnalysisLevel>
+    <!-- Needed for IDE0005 (unused usings) to report on build. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Deterministic>true</Deterministic>
-    <!-- NuGet vulnerability audit stays on; warnings become errors below. -->
+    <!-- NuGet vulnerability audit stays on; its warnings are errors like every other warning. -->
     <NuGetAudit>true</NuGetAudit>
+    <!-- Every project, the Godot client included: Godot's generated code builds clean (ADR 0006). -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
-  <!-- The Godot client is excluded: Godot's generated code is outside our control. -->
-  <PropertyGroup Condition="'$(MSBuildProjectName)' != 'Twin.Client'">
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  <!-- Only the simulation requires XML doc comments on public types (AGENTS.md). -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' != 'Twin.Sim'">
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 </Project>

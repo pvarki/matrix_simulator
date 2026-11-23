@@ -23,6 +23,15 @@ csharp_style_var_for_built_in_types = true:suggestion
 csharp_style_var_when_type_is_apparent = true:suggestion
 dotnet_sort_system_directives_first = true
 
+# Analyzer rules raised above the 10.0-recommended level (ADR 0006).
+# CA1305: culture-sensitive formatting; the simulation's text must not depend on the machine's culture.
+dotnet_diagnostic.CA1305.severity = warning
+# IDE0005: unused usings.
+dotnet_diagnostic.IDE0005.severity = warning
+# IDE0072: a switch expression on an enum must name every member, so a new member cannot silently fall into
+# a default arm. (Switch statements are IDE0010, which stays off.)
+dotnet_diagnostic.IDE0072.severity = warning
+
 # Constants and static readonly fields: PascalCase (checked before the private field rule below)
 dotnet_naming_rule.constant_fields.symbols = constant_fields
 dotnet_naming_rule.constant_fields.style = pascal_case
@@ -49,6 +58,6 @@ dotnet_naming_symbols.private_fields.applicable_accessibilities = private
 dotnet_naming_style.underscore_camel.capitalization = camel_case
 dotnet_naming_style.underscore_camel.required_prefix = _
 
-# Test method names use underscores as sentence separators.
+# Test method names are sentences with underscores (AGENTS.md "Writing tests"), which CA1707 would reject.
 [tests/**.cs]
 dotnet_diagnostic.CA1707.severity = none

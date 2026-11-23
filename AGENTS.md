@@ -66,7 +66,8 @@ The TDD phase is set by a human with `./dev phase spec|implement`. Hooks enforce
 
 ## Code conventions
 
-- C# latest, nullable on, warnings are errors (except the Godot client). File-scoped namespaces.
+- C# latest, nullable on, warnings are errors everywhere (the Godot client too). Analyzers at
+  `10.0-recommended` (ADR 0006). File-scoped namespaces.
 - Public simulation types get XML doc comments.
 - New simulation behaviour goes in an `ISimSystem` (`src/Twin.Sim/Systems`). Orders are immutable
   records in `src/Twin.Sim/Orders`, validated in `Simulation.Issue`.
