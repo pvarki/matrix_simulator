@@ -13,7 +13,7 @@ namespace Twin.Sim.Systems;
 /// below a quarter of the threshold, keeps pinned and suppressed agents prone, and carries out posture changes, which
 /// take the rules' change time. Runs before movement, so an agent that may move again does so in the same step.
 /// </summary>
-public sealed class CombatStatusSystem : ISimSystem
+internal sealed class CombatStatusSystem : ISimSystem
 {
     /// <inheritdoc />
     public void Update(Simulation simulation, double dtSeconds)
@@ -95,7 +95,7 @@ public sealed class CombatStatusSystem : ISimSystem
 /// agent that may return fire. A shot may hit: the first hit pins the target, a second puts it out of action. Units act
 /// in id order and every shot draws one number, so a run is deterministic.
 /// </summary>
-public sealed class FireSystem : ISimSystem
+internal sealed class FireSystem : ISimSystem
 {
     /// <summary>Rounds passing farther than this many crack radii add less than 1e-4 of their pressure, so they are ignored.</summary>
     private const double PressureCutoffRadii = 10;

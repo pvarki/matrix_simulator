@@ -22,7 +22,7 @@ namespace Twin.Sim.Systems;
 /// command does not). In a squad the contact report is spoken to its squad mates like a spot report (backlog 0004 S5a2).
 /// Runs after movement and before <see cref="FireSystem"/>.
 /// </summary>
-public sealed class ContactDrillSystem : ISimSystem
+internal sealed class ContactDrillSystem : ISimSystem
 {
     /// <inheritdoc />
     public void Update(Simulation simulation, double dtSeconds)

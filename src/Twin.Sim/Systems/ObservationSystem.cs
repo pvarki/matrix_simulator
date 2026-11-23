@@ -18,7 +18,7 @@ namespace Twin.Sim.Systems;
 /// </list>
 /// Runs last, after everyone has moved.
 /// </summary>
-public sealed class ObservationSystem : ISimSystem
+internal sealed class ObservationSystem : ISimSystem
 {
     /// <inheritdoc />
     public void Update(Simulation simulation, double dtSeconds)

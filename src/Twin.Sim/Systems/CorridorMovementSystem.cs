@@ -23,7 +23,7 @@ namespace Twin.Sim.Systems;
 /// ask to leave the forest first walks on along its reference route to a point inside the edge, commands its squad to
 /// deploy in an open line there, and asks once the line has formed or the deployment time is up (S2c).
 /// </summary>
-public sealed class CorridorMovementSystem : ISimSystem
+internal sealed class CorridorMovementSystem : ISimSystem
 {
     /// <summary>Tolerance when comparing simulated times computed in different ways.</summary>
     private const double TimeEpsilon = 1e-9;

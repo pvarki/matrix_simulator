@@ -17,7 +17,7 @@ namespace Twin.Sim.Systems;
 /// its slot, until every member is within <see cref="SquadDoctrine.RegroupMeters"/> of it. Runs after the members have
 /// moved (<see cref="SquadFollowSystem"/>) and before the leader moves, so it judges where the members are now.
 /// </summary>
-public sealed class SquadCohesionSystem : ISimSystem
+internal sealed class SquadCohesionSystem : ISimSystem
 {
     /// <inheritdoc />
     public void Update(Simulation simulation, double dtSeconds)
@@ -192,7 +192,7 @@ public sealed class SquadCohesionSystem : ISimSystem
 /// leader moves: members head for their slots around where the leader is at the start of the step,
 /// and the leader's trail is recorded.
 /// </summary>
-public sealed class SquadFollowSystem : ISimSystem
+internal sealed class SquadFollowSystem : ISimSystem
 {
     /// <summary>Extra length of the leader's trail kept beyond the deepest possible slot (a file), in metres.</summary>
     private const double TrailMarginMeters = 50;

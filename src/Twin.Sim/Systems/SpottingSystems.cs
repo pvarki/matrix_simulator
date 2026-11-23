@@ -20,7 +20,7 @@ namespace Twin.Sim.Systems;
 /// (<see cref="SquadAlerts.Learn"/>). Runs after movement and the drill, before firing. Does nothing while
 /// <see cref="ObservationRules.IsOff"/>; then only a <see cref="Orders.Watch"/> order turns an agent.
 /// </summary>
-public sealed class SpottingSystem : ISimSystem
+internal sealed class SpottingSystem : ISimSystem
 {
     /// <inheritdoc />
     public void Update(Simulation simulation, double dtSeconds)
@@ -179,7 +179,7 @@ public sealed class SpottingSystem : ISimSystem
 /// spoken the same way, with the class of the attacker's weapon (backlog 0004 S5a2), and the system keeps the leader's
 /// <see cref="Squad.EnemyEstimate"/>. Runs after spotting, before firing.
 /// </summary>
-public sealed class SpotReportSystem : ISimSystem
+internal sealed class SpotReportSystem : ISimSystem
 {
     /// <inheritdoc />
     public void Update(Simulation simulation, double dtSeconds)

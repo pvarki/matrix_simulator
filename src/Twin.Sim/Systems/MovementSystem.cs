@@ -10,7 +10,7 @@ namespace Twin.Sim.Systems;
 /// does a squad leader waiting for its squad (backlog 0004).
 /// Slope effects, terrain cost and pathfinding are in <see cref="CorridorMovementSystem"/>.
 /// </summary>
-public sealed class MovementSystem : ISimSystem
+internal sealed class MovementSystem : ISimSystem
 {
     /// <inheritdoc />
     public void Update(Simulation simulation, double dtSeconds)
