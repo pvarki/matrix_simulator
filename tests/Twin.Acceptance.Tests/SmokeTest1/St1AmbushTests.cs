@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Twin.Acceptance.Tests.Performance;
 using Twin.Sim.Combat;
 using Twin.Sim.Command;
 using Twin.Sim.Events;
@@ -14,8 +15,12 @@ namespace Twin.Acceptance.Tests.SmokeTest1;
 /// three red fighters on the st1 map, shared from <c>scenarios/st1/world</c>), and SM10, the time a squad takes to run
 /// through the st1 corridor.
 /// </summary>
+[Collection(TimedCollection.Name)]
 public class St1AmbushTests(ITestOutputHelper output)
 {
+    // SM10: ≈5× the slower of the Debug and Release times measured on 2026-11-23, rounded up.
+    private const double Sm10BudgetSeconds = 10;
+
     [Fact]
     public void The_ambush_scenario_places_a_squad_of_nine_and_three_red_fighters_on_the_st1_map()
     {
@@ -57,5 +62,7 @@ public class St1AmbushTests(ITestOutputHelper output)
         output.WriteLine($"SM10: 30 min of a squad of nine on st1 took {clock.Elapsed.TotalSeconds:0.00} s " +
             $"({sim.Simulation.Tick} ticks); rj reached x = {sim.Unit("rj").Position.X:0} m.");
         Assert.True(sim.Unit("rj").Position.X > 330, "the squad should get past the forest road at x = 330 in 30 min");
+        Assert.True(clock.Elapsed.TotalSeconds <= Sm10BudgetSeconds,
+            $"SM10: {clock.Elapsed.TotalSeconds:0.00} s is over the budget of {Sm10BudgetSeconds} s");
     }
 }

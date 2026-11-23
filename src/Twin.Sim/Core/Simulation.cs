@@ -51,6 +51,9 @@ public sealed class Simulation
     /// <summary>Run parameters.</summary>
     public SimulationConfig Config { get; }
 
+    /// <summary>Sight lines reused while neither end moves; a memo, not state (not in the state hash).</summary>
+    internal SightCache SightLines { get; } = new();
+
     /// <summary>The only source of randomness systems may use.</summary>
     public DeterministicRandom Random { get; }
 

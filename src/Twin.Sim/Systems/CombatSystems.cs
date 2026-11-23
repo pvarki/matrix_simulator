@@ -362,10 +362,10 @@ internal static class CombatQueries
     private static readonly UnitActivity[] CombatActivities =
         [UnitActivity.Suppressed, UnitActivity.Pinned, UnitActivity.OutOfAction, UnitActivity.ChangingPosture];
 
-    /// <summary>The sight line from the observer's eye to the target's aim point.</summary>
+    /// <summary>The sight line from the observer's eye to the target's aim point (reused while neither end moves).</summary>
     public static SightLine Sight(Simulation simulation, Unit observer, Unit target) =>
         simulation.Terrain is IWorldQuery world
-            ? LineOfSight.Between(world, observer.EyePosition, target.AimPoint, simulation.Config.Combat)
+            ? simulation.SightLines.Between(world, observer, target, simulation.Config.Combat)
             : new SightLine(false, 0);
 
     /// <summary>
