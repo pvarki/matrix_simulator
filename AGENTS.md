@@ -73,7 +73,8 @@ The TDD phase is set by a human with `./dev phase spec|implement`. Hooks enforce
 - Public simulation types get XML doc comments.
 - New simulation behaviour goes in an `ISimSystem` (`src/Twin.Sim/Systems`). Orders are immutable
   records in `src/Twin.Sim/Orders`, validated in `Simulation.Issue`.
-- Package versions live only in `Directory.Packages.props`. Adding or upgrading a package is its own PR.
+- Package versions live only in `Directory.Packages.props`. Adding or upgrading a package is its own PR,
+  together with the regenerated `packages.lock.json` files.
 
 ## Shared team knowledge (`matrix-docs`)
 

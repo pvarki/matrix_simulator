@@ -28,7 +28,7 @@ jobs:
           global-json-file: global.json
 
       - name: Restore
-        run: dotnet restore Twin.sln
+        run: dotnet restore Twin.sln --locked-mode
 
       - name: Check formatting
         run: dotnet format Twin.Core.slnf --verify-no-changes --no-restore
