@@ -23,7 +23,7 @@ public class FireFightBudgetTests(ITestOutputHelper output)
     /// ≈5× the slower of the Debug and Release times measured on 2026-11-23, rounded up. CI runs on slower shared
     /// machines and beside other test assemblies; the margin is for that, not for slower code.
     /// </summary>
-    private const double BudgetMsPerTick = 7200;
+    private const double BudgetMsPerTick = 900;
 
     private const int PerSide = 100;
     private const double SpacingMeters = 5;
