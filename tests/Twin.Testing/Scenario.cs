@@ -111,6 +111,26 @@ public sealed class Scenario
     }
 
     /// <summary>
+    /// Adds <paramref name="count"/> fighters with the rifle on a straight line across <paramref name="facing"/> (any
+    /// length), centred on <paramref name="centre"/>, <paramref name="spacingMeters"/> between neighbours:
+    /// <c>{prefix}-001</c>, <c>-002</c>, … from the facing's left to its right, in the unit <paramref name="idPrefix"/>.
+    /// A line does not turn by itself; order <see cref="Twin.Sim.Orders.Watch"/> on each fighter to face the enemy.
+    /// </summary>
+    public Scenario WithFireLine(
+        string idPrefix, Vec2 centre, Vec2 facing, int count, double spacingMeters, Side side, RulesOfEngagement rules)
+    {
+        var forward = facing.Normalized();
+        var left = new Vec2(-forward.Y, forward.X);
+        for (var i = 0; i < count; i++)
+        {
+            var offset = (((count - 1) / 2.0) - i) * spacingMeters;
+            WithFighter($"{idPrefix}-{i + 1:000}", centre + (left * offset), side, rules, unitId: idPrefix);
+        }
+
+        return this;
+    }
+
+    /// <summary>
     /// Starts a squad scenario (backlog 0004): <see cref="ForCombat"/> plus the <see cref="SpecSquad.Doctrine"/> command
     /// delays. dt = 0.5 s, so every spec delay is a whole number of ticks.
     /// </summary>
