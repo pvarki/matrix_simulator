@@ -25,5 +25,5 @@ public sealed record ScriptedLeader(LeaderAnswer Answer, double DelaySeconds, do
 public sealed record PermissionRules(double Threshold, double TimeoutSeconds)
 {
     /// <summary>Spec v0.1 starting values: threshold 1.5, timeout 120 s.</summary>
-    public static PermissionRules Default { get; } = new(1.5, 120);
+    public static PermissionRules Default { get; } = new(Threshold: 1.5, TimeoutSeconds: 120);
 }

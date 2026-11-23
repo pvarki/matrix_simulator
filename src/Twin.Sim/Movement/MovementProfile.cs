@@ -23,7 +23,8 @@ public sealed record MovementProfile(
     bool CanRappel = false)
 {
     /// <summary>Spec v0.1 starting values for walking infantry in full kit, standing.</summary>
-    public static MovementProfile Infantry { get; } = new(1.5, 1.3, 1.2, 0.9, 0.6, 0.8, 1.6);
+    public static MovementProfile Infantry { get; } = new(
+        RoadMps: 1.5, OpenMps: 1.3, FieldMps: 1.2, ForestMps: 0.9, BogMps: 0.6, MaxSlope: 0.8, EyeHeightMeters: 1.6);
 
     /// <summary>The fastest base speed of any class.</summary>
     public double MaxBaseSpeed => Math.Max(Math.Max(Math.Max(RoadMps, OpenMps), Math.Max(FieldMps, ForestMps)), BogMps);
