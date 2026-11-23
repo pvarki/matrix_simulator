@@ -194,22 +194,22 @@ public sealed class Simulation
     public void Issue(string unitId, Order order)
     {
         ArgumentNullException.ThrowIfNull(order);
-        if (!_units.ContainsKey(unitId))
+        if (!_units.TryGetValue(unitId, out var unit))
         {
             throw new OrderRejectedException($"No unit with id '{unitId}'.");
         }
 
-        if (_units[unitId].Health == Health.OutOfAction)
+        if (unit.Health == Health.OutOfAction)
         {
             throw new OrderRejectedException($"Unit '{unitId}' is out of action.");
         }
 
         if (order is FireAt fireAt)
         {
-            ValidateFireAt(_units[unitId], fireAt);
+            ValidateFireAt(unit, fireAt);
         }
 
-        if (order is SetPosture or CeaseFire && _units[unitId].Combatant is null)
+        if (order is SetPosture or CeaseFire && unit.Combatant is null)
         {
             throw new OrderRejectedException($"Unit '{unitId}' is not a fighter.");
         }
@@ -242,7 +242,7 @@ public sealed class Simulation
 
         if (order is MoveThroughCorridor corridorOrder)
         {
-            ValidateCorridorOrder(_units[unitId], corridorOrder);
+            ValidateCorridorOrder(unit, corridorOrder);
         }
 
         _pendingOrders.Add((unitId, order));

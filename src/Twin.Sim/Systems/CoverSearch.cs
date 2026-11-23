@@ -70,7 +70,7 @@ internal static class CoverSearch
         return null;
     }
 
-    private static IReadOnlyList<IReadOnlyList<Vec2>> BoundariesOf(Unit agent) =>
+    private static List<IReadOnlyList<Vec2>> BoundariesOf(Unit agent) =>
         (agent.CurrentOrder ?? agent.Drill?.SuspendedOrder) is MoveThroughCorridor corridor
             ? corridor.Corridor.HardBoundaries.Select(b => b.Line).ToList()
             : [];

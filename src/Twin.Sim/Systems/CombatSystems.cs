@@ -523,6 +523,7 @@ internal static class CombatQueries
             Health.Pinned => UnitActivity.Pinned,
             _ when unit.IsSuppressed => UnitActivity.Suppressed,
             _ when unit.PostureChangeUntil is not null => UnitActivity.ChangingPosture,
+            Health.Unhurt or Health.Wounded => null,
             _ => null,
         };
 

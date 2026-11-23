@@ -36,6 +36,8 @@ public sealed record MovementProfile(
         TerrainClass.Field => FieldMps,
         TerrainClass.Forest => ForestMps,
         TerrainClass.Bog => BogMps,
+        TerrainClass.Water => 0,
+        TerrainClass.Building => 0,
         _ => 0,
     };
 

@@ -44,6 +44,7 @@ public sealed record ObservationRules(
     public double BaseSeconds(Experience experience) => experience switch
     {
         Experience.Conscript => ConscriptSeconds,
+        Experience.Regular => RegularSeconds,
         Experience.SpecialForces => SpecialForcesSeconds,
         _ => RegularSeconds,
     };

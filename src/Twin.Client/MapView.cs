@@ -77,6 +77,7 @@ public partial class MapView : Sprite2D
 
     private static Color ClassColor(TerrainClass terrainClass) => terrainClass switch
     {
+        TerrainClass.Open => new Color(0.82f, 0.80f, 0.66f),
         TerrainClass.Road => new Color(0.48f, 0.45f, 0.42f),
         TerrainClass.Field => new Color(0.93f, 0.87f, 0.58f),
         TerrainClass.Forest => new Color(0.47f, 0.64f, 0.40f),

@@ -124,6 +124,7 @@ public sealed record SuppressionRules(
     public ExperienceValues For(Experience experience) => experience switch
     {
         Experience.Conscript => Conscript,
+        Experience.Regular => Regular,
         Experience.SpecialForces => SpecialForces,
         _ => Regular,
     };
@@ -134,6 +135,7 @@ public sealed record SuppressionRules(
     /// <summary>The cover factor of a posture.</summary>
     public double Cover(Posture posture) => posture switch
     {
+        Posture.Standing => StandingCover,
         Posture.Crouching => CrouchingCover,
         Posture.Prone => ProneCover,
         _ => StandingCover,
