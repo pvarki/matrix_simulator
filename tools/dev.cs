@@ -293,8 +293,10 @@ int Phase(string[] a)
     var file = Path.Combine(root, ".claude", "state", "phase");
     if (a.Length == 0)
     {
-        var current = File.Exists(file) ? File.ReadAllText(file).Trim() : "implement";
-        Console.WriteLine($"TDD phase: {current}");
+        // Same rule in guard.cs, verify.cs, session-start.cs and tools/dev.cs (file-based apps cannot share code):
+        // a missing, empty or unknown phase file means spec, the safe default.
+        var current = File.Exists(file) && File.ReadAllText(file).Trim() == "implement" ? "implement" : "spec";
+        Console.WriteLine($"TDD phase: {current}" + (File.Exists(file) ? string.Empty : " (no phase set; default)"));
         return 0;
     }
 
@@ -304,11 +306,29 @@ int Phase(string[] a)
         return 1;
     }
 
+    // The Stop hook (verify.cs) checks the work since the baseline written here, so a switch with uncommitted
+    // changes under src/ or tests/ would count them against the new phase.
+    var dirty = Capture("git", $"-C \"{root}\" status --porcelain -- src tests");
+    var head = Capture("git", $"-C \"{root}\" rev-parse HEAD")?.Trim();
+    if (dirty is null || head is null)
+    {
+        Console.WriteLine("git failed; the phase was not changed.");
+        return 1;
+    }
+
+    if (dirty.Length > 0)
+    {
+        Console.WriteLine($"Commit or stash changes under src/ and tests/ first (docs/workflow.md step 3):\n{dirty.TrimEnd()}");
+        return 1;
+    }
+
     Directory.CreateDirectory(Path.GetDirectoryName(file)!);
     File.WriteAllText(file, a[0]);
+    File.WriteAllText(Path.Combine(Path.GetDirectoryName(file)!, "base"), head);
     Console.WriteLine(a[0] == "spec"
         ? "TDD phase: spec. Tests may be written and changed; src/ is locked."
         : "TDD phase: implement. src/ is open; existing tests are locked (new test files are allowed).");
+    Console.WriteLine($"Baseline for the stop hook: {head[..Math.Min(7, head.Length)]} (HEAD).");
     return 0;
 }
 

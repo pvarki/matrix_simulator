@@ -1,0 +1,22 @@
+# Human-only paths: agents propose changes to these in the PR description instead of editing them.
+# One path prefix per line, relative to the repository root, compared case-insensitively.
+# Read by .claude/hooks/guard.cs (before each edit) and .claude/hooks/verify.cs (at stop). ADR 0008.
+# Not listed on purpose: dev and dev.cmd (thin wrappers; tools/dev.cs stays open for feature work),
+# docs/adr/ and docs/workflow.md.
+
+# The harness: hooks, settings, settings.local.json, state, skills, agents and this list
+.claude/
+AGENTS.md
+CLAUDE.md
+
+# Build and solution files
+Twin.sln
+Twin.Core.slnf
+Directory.Build.props
+Directory.Packages.props
+.editorconfig
+global.json
+
+# CI
+.github/
+tools/check-test-edits.cs
