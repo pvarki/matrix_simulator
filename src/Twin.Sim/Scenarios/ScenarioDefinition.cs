@@ -100,106 +100,146 @@ public sealed class ScenarioDefinition
     private static ScenarioDefinition Read(string directory)
     {
         using var json = JsonDocument.Parse(File.ReadAllText(Path.Combine(directory, "scenario.json")));
-        var root = json.RootElement;
-        if (root.GetProperty("schemaVersion").GetInt32() != 1)
+        var root = Section(
+            json.RootElement, "$", "schemaVersion", "seed", "dtSeconds", "world", "agent", "squad", "enemies", "corridor", "leader",
+            "permission", "expect", "doctrine");
+        var schema = Get(root, "$", "schemaVersion", Number);
+        if (schema != 1)
         {
-            throw new InvalidDataException("Unsupported scenario schema version.");
+            throw Error("$.schemaVersion", $"unsupported version {schema}; expected 1.");
         }
 
-        var worldPath = root.TryGetProperty("world", out var w) ? w.GetString() ?? "world" : "world";
-        var world = WorldFiles.Load(Path.Combine(directory, worldPath));
-        Vec2 Local(JsonElement point) => world.Origin.ToLocal(new EtrsPoint(point[0].GetDouble(), point[1].GetDouble()));
-        Vec2[] Line(JsonElement points) => points.EnumerateArray().Select(Local).ToArray();
+        var world = WorldFiles.Load(Path.Combine(directory, Get(root, "$", "world", Text, "world")));
+        Vec2 Local(JsonElement point, string path)
+        {
+            var (easting, northing) = Point(point, path);
+            return world.Origin.ToLocal(new EtrsPoint(easting, northing));
+        }
+
+        Vec2[] Line(JsonElement points, string path) => Items(points, path).Select(p => Local(p.Item, p.Path)).ToArray();
 
         var hasAgent = root.TryGetProperty("agent", out var agent);
         var hasSquad = root.TryGetProperty("squad", out var squadJson);
         if (hasAgent == hasSquad)
         {
-            throw new InvalidDataException("A scenario needs exactly one of 'agent' and 'squad'.");
+            throw Error("$", "a scenario needs exactly one of 'agent' and 'squad'.");
         }
 
-        var corridorJson = root.GetProperty("corridor");
-        var boundaries = corridorJson.TryGetProperty("hardBoundaries", out var hb)
-            ? hb.EnumerateArray()
-                .Select(b => new HardBoundary(b.GetProperty("id").GetString() ?? "boundary", Line(b.GetProperty("line")), BoundarySource.Order))
-                .ToArray()
-            : [];
+        var corridorJson = Get(
+            root, "$", "corridor", (e, path) => Section(e, path, "centerline", "width", "softMargin", "softPenalty", "hardBoundaries"));
+        var boundaries = Get(
+            corridorJson, "$.corridor", "hardBoundaries",
+            (e, path) => Items(e, path).Select(b => ReadBoundary(Section(b.Item, b.Path, "id", "line"), b.Path, Line)).ToArray(),
+            []);
+        var centerline = Get(corridorJson, "$.corridor", "centerline", Line);
+        if (centerline.Length == 0)
+        {
+            throw Error("$.corridor.centerline", "needs at least one point.");
+        }
+
+        CheckPosition(world, centerline[^1], $"$.corridor.centerline[{centerline.Length - 1}]", "the corridor's end B");
         var corridor = new Corridor(
-            Line(corridorJson.GetProperty("centerline")),
-            corridorJson.GetProperty("width").GetDouble(),
-            corridorJson.GetProperty("softMargin").GetDouble(),
-            corridorJson.GetProperty("softPenalty").GetDouble(),
+            centerline,
+            Get(corridorJson, "$.corridor", "width", Number),
+            Get(corridorJson, "$.corridor", "softMargin", Number),
+            Get(corridorJson, "$.corridor", "softPenalty", Number),
             boundaries);
 
-        var leaderJson = root.GetProperty("leader");
+        var leaderJson = Get(root, "$", "leader", (e, path) => Section(e, path, "answer", "delaySeconds", "permitRadius"));
         var leader = new ScriptedLeader(
-            ParseAnswer(leaderJson.GetProperty("answer").GetString()),
-            leaderJson.GetProperty("delaySeconds").GetDouble(),
-            leaderJson.GetProperty("permitRadius").GetDouble());
+            Get(leaderJson, "$.leader", "answer", ParseAnswer),
+            Get(leaderJson, "$.leader", "delaySeconds", Number),
+            Get(leaderJson, "$.leader", "permitRadius", Number));
 
-        var permission = root.TryGetProperty("permission", out var p)
-            ? new PermissionRules(p.GetProperty("threshold").GetDouble(), p.GetProperty("timeoutSeconds").GetDouble())
-            : PermissionRules.Default;
-        var seed = root.TryGetProperty("seed", out var s) ? s.GetUInt64() : 1UL;
-        var dt = root.TryGetProperty("dtSeconds", out var d) ? d.GetDouble() : 0.5;
+        var permission = Get(
+            root, "$", "permission",
+            (p, path) =>
+            {
+                Section(p, path, "threshold", "timeoutSeconds");
+                return new PermissionRules(Get(p, path, "threshold", Number), Get(p, path, "timeoutSeconds", Number));
+            },
+            PermissionRules.Default);
+        if (root.TryGetProperty("expect", out var expect))
+        {
+            Section(expect, "$.expect", "detourWithoutCrossing"); // read by tests only (ScenarioOnDisk)
+        }
+
+        var seed = Get(
+            root, "$", "seed",
+            (e, path) => e.ValueKind == JsonValueKind.Number && e.TryGetUInt64(out var s) ? s : throw Error(path, "must be a whole number from 0 up."),
+            1UL);
+        var dt = Get(root, "$", "dtSeconds", Number, 0.5);
+        if (dt <= 0)
+        {
+            throw Error("$.dtSeconds", $"{dt} must be greater than 0.");
+        }
+
         var tickRate = (int)Math.Round(1 / dt);
         if (Math.Abs((1.0 / tickRate) - dt) > 1e-12)
         {
-            throw new InvalidDataException($"dtSeconds {dt} must be 1 / a whole number of ticks per second.");
+            throw Error("$.dtSeconds", $"{dt} must be 1 / a whole number of ticks per second.");
         }
 
-        var enemies = root.TryGetProperty("enemies", out var enemiesJson)
-            ? enemiesJson.EnumerateArray().Select(e => ReadEnemy(e, Local)).ToList()
-            : [];
+        var enemies = Get(
+            root, "$", "enemies", (e, path) => Items(e, path).Select(x => (Enemy: ReadEnemy(x.Item, x.Path, Local), x.Path)).ToList(), []);
         var ids = new SortedSet<string>(StringComparer.Ordinal);
-        foreach (var enemy in enemies)
+        foreach (var (enemy, path) in enemies)
         {
-            if (!world.World.Contains(enemy.Position))
-            {
-                throw new InvalidDataException($"Enemy '{enemy.Id}' is off the map.");
-            }
+            CheckPosition(world, enemy.Position, $"{path}.position", $"enemy '{enemy.Id}'");
         }
 
+        var enemyIds = enemies.Select(e => (e.Enemy.Id, Path: $"{e.Path}.id"));
         if (hasSquad)
         {
-            var (squad, combatants) = ReadSquad(squadJson);
-            var start = Local(squadJson.GetProperty("start"));
+            var (squad, combatants) = ReadSquad(Section(squadJson, "$.squad", "id", "start", "formation", "rules", "teams", "members"));
+            var start = Get(squadJson, "$.squad", "start", Local);
             CheckSquad(world, squad, combatants, start, corridor);
-            CheckUnique(ids, squad.Members.Select(m => m.UnitId).Concat(enemies.Select(e => e.Id)));
+            CheckUnique(ids, squad.Members.Select((m, i) => (m.UnitId, $"$.squad.members[{i}].id")).Concat(enemyIds));
             return new ScenarioDefinition(
                 world, squad.Members.First(m => m.Role == SquadRole.SquadLeader).UnitId, start, corridor, leader, permission, MovementProfile.Infantry, seed, tickRate, ReadDoctrine(root),
-                squad, combatants, enemies);
+                squad, combatants, enemies.Select(e => e.Enemy).ToList());
         }
 
-        CheckUnique(ids, enemies.Select(e => e.Id).Prepend(agent.GetProperty("id").GetString() ?? "agent"));
+        Section(agent, "$.agent", "id", "start", "canRappel");
+        var agentId = Get(agent, "$.agent", "id", Text);
+        var agentStart = Get(agent, "$.agent", "start", Local);
+        CheckPosition(world, agentStart, "$.agent.start", $"agent '{agentId}'");
+        CheckUnique(ids, enemyIds.Prepend((agentId, "$.agent.id")));
         return new ScenarioDefinition(
-            world, agent.GetProperty("id").GetString() ?? "agent", Local(agent.GetProperty("start")), corridor, leader,
-            permission, MovementProfile.Infantry with { CanRappel = agent.TryGetProperty("canRappel", out var rappel) && rappel.GetBoolean() },
-            seed, tickRate, ReadDoctrine(root), null, new SortedDictionary<string, Combatant>(StringComparer.Ordinal), enemies);
+            world, agentId, agentStart, corridor, leader,
+            permission, MovementProfile.Infantry with { CanRappel = Get(agent, "$.agent", "canRappel", Flag, false) },
+            seed, tickRate, ReadDoctrine(root), null, new SortedDictionary<string, Combatant>(StringComparer.Ordinal),
+            enemies.Select(e => e.Enemy).ToList());
     }
+
+    /// <summary>One entry of <c>corridor.hardBoundaries</c>.</summary>
+    private static HardBoundary ReadBoundary(JsonElement b, string path, Func<JsonElement, string, Vec2[]> line) =>
+        new(Get(b, path, "id", Text), Get(b, path, "line", line), BoundarySource.Order);
 
     /// <summary>The <c>squad</c> section: the definition and each member's fighter (backlog 0004 S2d).</summary>
     private static (SquadDefinition Squad, SortedDictionary<string, Combatant> Combatants) ReadSquad(JsonElement json)
     {
-        var id = json.GetProperty("id").GetString() ?? string.Empty;
-        var rules = json.TryGetProperty("rules", out var r) ? Name<RulesOfEngagement>(r.GetString(), "rules") : RulesOfEngagement.ReturnFire;
-        var formation = json.TryGetProperty("formation", out var f) ? Name<SquadFormation>(f.GetString(), "formation") : SquadFormation.File;
-        var teams = json.GetProperty("teams").EnumerateArray().Select(t => t.GetString() ?? string.Empty).ToList();
+        const string path = "$.squad";
+        var id = Get(json, path, "id", Text);
+        var rules = Get(json, path, "rules", Name<RulesOfEngagement>, RulesOfEngagement.ReturnFire);
+        var formation = Get(json, path, "formation", Name<SquadFormation>, SquadFormation.File);
+        var teams = Get(json, path, "teams", (e, p) => Items(e, p).Select(t => Text(t.Item, t.Path)).ToList());
         var members = new List<SquadMember>();
         var combatants = new SortedDictionary<string, Combatant>(StringComparer.Ordinal);
-        foreach (var m in json.GetProperty("members").EnumerateArray())
+        foreach (var (m, memberPath) in Get(json, path, "members", Items))
         {
-            var memberId = m.GetProperty("id").GetString() ?? string.Empty;
-            members.Add(new SquadMember(memberId, Name<SquadRole>(m.GetProperty("role").GetString(), "role"), m.GetProperty("team").GetString() ?? string.Empty));
+            Section(m, memberPath, "id", "role", "team", "experience", "weapon", "rules");
+            var memberId = Get(m, memberPath, "id", Text);
+            members.Add(new SquadMember(memberId, Get(m, memberPath, "role", Name<SquadRole>), Get(m, memberPath, "team", Text)));
             var combatant = new Combatant(
                 Side.Blue,
-                m.TryGetProperty("rules", out var mr) ? Name<RulesOfEngagement>(mr.GetString(), "rules") : rules,
-                m.TryGetProperty("weapon", out var weapon) ? Weapon(weapon.GetString()) : WeaponProfile.Rifle,
+                Get(m, memberPath, "rules", Name<RulesOfEngagement>, rules),
+                Get(m, memberPath, "weapon", Weapon, WeaponProfile.Rifle),
                 id,
-                m.TryGetProperty("experience", out var x) ? Name<Experience>(x.GetString(), "experience") : Experience.Regular);
+                Get(m, memberPath, "experience", Name<Experience>, Experience.Regular));
             if (!combatants.TryAdd(memberId, combatant))
             {
-                throw new InvalidDataException($"Squad '{id}': '{memberId}' is listed twice.");
+                throw Error($"{memberPath}.id", $"'{memberId}' is listed twice in squad '{id}'.");
             }
         }
 
@@ -207,33 +247,29 @@ public sealed class ScenarioDefinition
     }
 
     /// <summary>Every id is used once across the agent or the squad and the enemies.</summary>
-    private static void CheckUnique(SortedSet<string> ids, IEnumerable<string> all)
+    private static void CheckUnique(SortedSet<string> ids, IEnumerable<(string Id, string Path)> all)
     {
-        foreach (var id in all)
+        foreach (var (id, path) in all)
         {
             if (!ids.Add(id))
             {
-                throw new InvalidDataException($"The id '{id}' is used twice.");
+                throw Error(path, $"the id '{id}' is used twice.");
             }
         }
     }
 
     /// <summary>
-    /// Checks that the squad can be placed (its start and every member's starting slot on the map, a corridor to lay it
-    /// out along) and is valid as <see cref="Simulation.AddSquad"/> checks it, so an unusable squad fails when it is loaded.
+    /// Checks that the squad can be placed (its start and every member's starting slot on passable ground on the map, a
+    /// corridor to lay it out along) and is valid as <see cref="Simulation.AddSquad"/> checks it, so an unusable squad fails when it is loaded.
     /// </summary>
     private static void CheckSquad(
         LoadedWorld world, SquadDefinition squad, SortedDictionary<string, Combatant> combatants, Vec2 start, Corridor corridor)
     {
-        if (!world.World.Contains(start))
-        {
-            throw new InvalidDataException($"Squad '{squad.Id}': its start is off the map.");
-        }
+        CheckPosition(world, start, "$.squad.start", $"squad '{squad.Id}' start");
 
         if (corridor.Centerline.Count < 2 || corridor.Centerline[0].DistanceTo(corridor.Centerline[1]) < 1e-9)
         {
-            throw new InvalidDataException(
-                $"Squad '{squad.Id}': the corridor's first segment must have a length, to lay the squad out along it.");
+            throw Error("$.corridor.centerline", $"the corridor's first segment must have a length, to lay squad '{squad.Id}' out along it.");
         }
 
         try
@@ -247,15 +283,31 @@ public sealed class ScenarioDefinition
             check.AddSquad(squad);
             foreach (var (id, at) in StartingPositions(squad, start, corridor))
             {
-                if (!world.World.Contains(at))
-                {
-                    throw new InvalidDataException($"Squad '{squad.Id}': '{id}' would start off the map, at {at}.");
-                }
+                var index = squad.Members.Select(m => m.UnitId).ToList().IndexOf(id);
+                CheckPosition(world, at, $"$.squad.members[{index}]", $"the starting slot of '{id}'");
             }
         }
         catch (ArgumentException e)
         {
-            throw new InvalidDataException(e.Message, e);
+            throw new InvalidDataException($"$.squad: {e.Message}", e);
+        }
+    }
+
+    /// <summary>
+    /// Checks that a unit can stand at <paramref name="at"/>: on the map, on terrain infantry can move on (the rule
+    /// <see cref="Simulation.Issue"/> applies to a corridor order's start and end, so water and buildings fail).
+    /// </summary>
+    private static void CheckPosition(LoadedWorld world, Vec2 at, string path, string what)
+    {
+        if (!world.World.Contains(at))
+        {
+            throw Error(path, $"{what} at {at} is off the map.");
+        }
+
+        var terrain = world.World.ClassAt(at.X, at.Y);
+        if (MovementProfile.Infantry.BaseSpeed(terrain) <= 0)
+        {
+            throw Error(path, $"{what} at {at} is in impassable terrain ({terrain}).");
         }
     }
 
@@ -272,30 +324,35 @@ public sealed class ScenarioDefinition
     }
 
     /// <summary>One entry of <c>enemies</c> (backlog 0004 S2d).</summary>
-    private static ScenarioEnemy ReadEnemy(JsonElement e, Func<JsonElement, Vec2> local) => new(
-        e.GetProperty("id").GetString() ?? string.Empty,
-        local(e.GetProperty("position")),
-        new Combatant(
-            e.TryGetProperty("side", out var side) ? Name<Side>(side.GetString(), "side") : Side.Red,
-            e.TryGetProperty("rules", out var rules) ? Name<RulesOfEngagement>(rules.GetString(), "rules") : RulesOfEngagement.FreeFire,
-            e.TryGetProperty("weapon", out var weapon) ? Weapon(weapon.GetString()) : WeaponProfile.Rifle,
-            Experience: e.TryGetProperty("experience", out var x) ? Name<Experience>(x.GetString(), "experience") : Experience.Regular),
-        e.TryGetProperty("posture", out var posture) ? Name<Posture>(posture.GetString(), "posture") : Posture.Standing,
-        e.TryGetProperty("watchToward", out var watch) ? local(watch) : null);
+    private static ScenarioEnemy ReadEnemy(JsonElement e, string path, Func<JsonElement, string, Vec2> local)
+    {
+        Section(e, path, "id", "position", "side", "posture", "rules", "weapon", "experience", "watchToward");
+        return new(
+            Get(e, path, "id", Text),
+            Get(e, path, "position", local),
+            new Combatant(
+                Get(e, path, "side", Name<Side>, Side.Red),
+                Get(e, path, "rules", Name<RulesOfEngagement>, RulesOfEngagement.FreeFire),
+                Get(e, path, "weapon", Weapon, WeaponProfile.Rifle),
+                Experience: Get(e, path, "experience", Name<Experience>, Experience.Regular)),
+            Get(e, path, "posture", Name<Posture>, Posture.Standing),
+            e.TryGetProperty("watchToward", out var watch) ? local(watch, $"{path}.watchToward") : null);
+    }
 
     /// <summary>A weapon by its name in scenario.json.</summary>
-    private static WeaponProfile Weapon(string? name) => name switch
+    private static WeaponProfile Weapon(JsonElement e, string path) => Text(e, path) switch
     {
         "rifle" => WeaponProfile.Rifle,
         "machineGun" => WeaponProfile.MachineGun,
         "heavyMachineGun" => WeaponProfile.HeavyMachineGun,
-        _ => throw new InvalidDataException($"Unknown weapon '{name}'; use rifle, machineGun or heavyMachineGun."),
+        var name => throw Error(path, $"unknown weapon '{name}'; use rifle, machineGun or heavyMachineGun."),
     };
 
     /// <summary>An enum value by its name in scenario.json, in camel case (<c>squadLeader</c>, <c>freeFire</c>).</summary>
-    private static T Name<T>(string? text, string what)
+    private static T Name<T>(JsonElement e, string path)
         where T : struct, Enum
     {
+        var text = Text(e, path);
         foreach (var name in Enum.GetNames<T>())
         {
             if (string.Equals(char.ToLowerInvariant(name[0]) + name[1..], text, StringComparison.Ordinal))
@@ -305,7 +362,7 @@ public sealed class ScenarioDefinition
         }
 
         var names = string.Join(", ", Enum.GetNames<T>().Select(n => char.ToLowerInvariant(n[0]) + n[1..]));
-        throw new InvalidDataException($"Unknown {what} '{text}'; use {names}.");
+        throw Error(path, $"unknown value '{text}'; use {names}.");
     }
 
     /// <summary>
@@ -360,35 +417,84 @@ public sealed class ScenarioDefinition
             return Doctrine.Default;
         }
 
-        var doctrine = Doctrine.Default;
-        if (d.TryGetProperty("returnFireOverridesFireAt", out var returnFire))
+        const string path = "$.doctrine";
+        Section(d, path, "returnFireOverridesFireAt", "permissionAnswers");
+        return Doctrine.Default with
         {
-            doctrine = doctrine with { ReturnFireOverridesFireAt = returnFire.GetBoolean() };
-        }
-
-        if (d.TryGetProperty("permissionAnswers", out var answers))
-        {
-            doctrine = doctrine with
-            {
-                PermissionAnswers = answers.GetString() switch
+            ReturnFireOverridesFireAt = Get(d, path, "returnFireOverridesFireAt", Flag, Doctrine.Default.ReturnFireOverridesFireAt),
+            PermissionAnswers = Get(
+                d, path, "permissionAnswers",
+                (e, p) => Text(e, p) switch
                 {
                     "whenFree" => PermissionAnswerTiming.WhenFree,
                     "immediately" => PermissionAnswerTiming.Immediately,
-                    var other => throw new InvalidDataException($"Unknown permissionAnswers '{other}'; use whenFree or immediately."),
+                    var other => throw Error(p, $"unknown permissionAnswers '{other}'; use whenFree or immediately."),
                 },
-            };
-        }
-
-        return doctrine;
+                Doctrine.Default.PermissionAnswers),
+        };
     }
 
-    private static LeaderAnswer ParseAnswer(string? text) => text switch
+    private static LeaderAnswer ParseAnswer(JsonElement e, string path) => Text(e, path) switch
     {
         "grant" => LeaderAnswer.Grant,
         "deny" => LeaderAnswer.Deny,
         "noAnswer" => LeaderAnswer.NoAnswer,
-        _ => throw new InvalidDataException($"Unknown leader answer '{text}'; use grant, deny or noAnswer."),
+        var text => throw Error(path, $"unknown leader answer '{text}'; use grant, deny or noAnswer."),
     };
+
+    /// <summary>
+    /// Checks that <paramref name="e"/> at <paramref name="path"/> is an object whose keys are all in
+    /// <paramref name="known"/>, so a mistyped key fails instead of being ignored. Call it before reading the object.
+    /// </summary>
+    private static JsonElement Section(JsonElement e, string path, params string[] known)
+    {
+        if (e.ValueKind != JsonValueKind.Object)
+        {
+            throw Error(path, "must be an object.");
+        }
+
+        foreach (var property in e.EnumerateObject())
+        {
+            if (Array.IndexOf(known, property.Name) < 0)
+            {
+                throw Error($"{path}.{property.Name}", $"unknown key; expected one of {string.Join(", ", known)}.");
+            }
+        }
+
+        return e;
+    }
+
+    /// <summary>Reads the required key <paramref name="key"/> of the object at <paramref name="path"/>.</summary>
+    private static T Get<T>(JsonElement obj, string path, string key, Func<JsonElement, string, T> read) =>
+        obj.TryGetProperty(key, out var value) ? read(value, $"{path}.{key}") : throw Error($"{path}.{key}", "is missing.");
+
+    /// <summary>Reads the optional key <paramref name="key"/>, or returns <paramref name="fallback"/> if it is absent.</summary>
+    private static T Get<T>(JsonElement obj, string path, string key, Func<JsonElement, string, T> read, T fallback) =>
+        obj.TryGetProperty(key, out var value) ? read(value, $"{path}.{key}") : fallback;
+
+    private static double Number(JsonElement e, string path) =>
+        e.ValueKind == JsonValueKind.Number && e.TryGetDouble(out var value) ? value : throw Error(path, "must be a number.");
+
+    private static string Text(JsonElement e, string path) =>
+        e.ValueKind == JsonValueKind.String ? e.GetString()! : throw Error(path, "must be a string.");
+
+    private static bool Flag(JsonElement e, string path) =>
+        e.ValueKind is JsonValueKind.True or JsonValueKind.False ? e.GetBoolean() : throw Error(path, "must be true or false.");
+
+    /// <summary>The items of the array at <paramref name="path"/>, each with its own path (<c>path[i]</c>).</summary>
+    private static List<(JsonElement Item, string Path)> Items(JsonElement e, string path) =>
+        e.ValueKind == JsonValueKind.Array
+            ? e.EnumerateArray().Select((item, i) => (item, $"{path}[{i}]")).ToList()
+            : throw Error(path, "must be an array.");
+
+    /// <summary>An ETRS-TM35FIN point: exactly two numbers.</summary>
+    private static (double Easting, double Northing) Point(JsonElement e, string path) =>
+        e.ValueKind == JsonValueKind.Array && e.GetArrayLength() == 2 &&
+        e[0].ValueKind == JsonValueKind.Number && e[1].ValueKind == JsonValueKind.Number
+            ? (e[0].GetDouble(), e[1].GetDouble())
+            : throw Error(path, "must be [easting, northing].");
+
+    private static InvalidDataException Error(string path, string problem) => new($"{path}: {problem}");
 }
 
 /// <summary>An enemy fighter in a scenario (<c>enemies</c> in scenario.json, backlog 0004 S2d). It gets no movement order.</summary>

@@ -44,6 +44,8 @@ with Git LFS (`.gitattributes`); run `git lfs install` once per machine.
 ```
 
 `origin` is the south-west corner of the area in ETRS-TM35FIN. Local coordinates are meters east and north of it.
+`crs` must be `EPSG:3067`. Every layer and cliff `file` must be a relative path inside the world directory (no
+`..`). A layer that is still a Git LFS pointer fails with a message that says so.
 
 ## Terrain class codes (`maastoluokka.bin`)
 
@@ -79,6 +81,7 @@ At least 10 points at cell centers, with the height GDAL reads from the original
 ## scenario.json
 
 Points are ETRS-TM35FIN `[easting, northing]`, as read from a map; the simulation converts them to local meters.
+A key the format does not know is an error, and every error names its JSON path (`$.squad.members[2].role`).
 
 ```json
 {
@@ -102,7 +105,8 @@ Points are ETRS-TM35FIN `[easting, northing]`, as read from a map; the simulatio
 
 - The agent's destination B is the last centerline point. The agent is spec v0.1 infantry; `canRappel` (optional,
   default false) lets it cross cliffs (ADR 0010).
-- `leader.answer` is `grant`, `deny` or `noAnswer`; acceptance tests run every variant regardless of this value.
+- `leader.answer` is `grant`, `deny` or `noAnswer`. `./dev replay` uses it unless `--answer` is given; acceptance
+  tests run every variant regardless of this value.
 - `hardBoundaries` are lines from the order. Forest edges need no line (ADR 0009).
 - `doctrine` (optional) holds rules decided by people, not by physics (backlog 0002). Any key left out keeps its
   default, which is shown above:
@@ -136,8 +140,10 @@ Points are ETRS-TM35FIN `[easting, northing]`, as read from a map; the simulatio
   `{ "id": "red-mg", "position": [E, N], "side": "red", "posture": "prone", "rules": "freeFire", "weapon": "machineGun",
   "experience": "regular", "watchToward": [E, N] }`. Only `id` and `position` are required; the defaults are those
   shown, except `posture` `standing`, `weapon` `rifle` and no `watchToward` (the fighter keeps its default watch).
-- The squad is always on the blue side. A scenario that cannot be placed fails when it is loaded: a squad start, a
-  member's starting slot or an enemy off the map, an id used twice, a corridor whose first segment has no length.
+- The squad is always on the blue side. A scenario that cannot be placed fails when it is loaded: the agent's or
+  squad's start, a member's starting slot, an enemy or B off the map or in water or a building (impassable for
+  infantry), an id used twice, a corridor whose first segment has no length. Cliffs are not checked here: whether B
+  can be reached across them is for the route to find out.
 - `expect` is read only by tests: `detourWithoutCrossing` says whether B can be reached inside the corridor without
   crossing any hard boundary, including leaving forest. A person sets it after studying the area.
 

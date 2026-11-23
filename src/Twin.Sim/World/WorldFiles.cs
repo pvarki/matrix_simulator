@@ -7,12 +7,14 @@ namespace Twin.Sim.World;
 
 /// <summary>
 /// Reads a preprocessed world: <c>manifest.json</c> plus raw little-endian layers with row 0 the southernmost row
-/// (format: scenarios/README.md). Every layer's sha256 is checked against the manifest.
+/// (format: scenarios/README.md). The crs must be EPSG:3067, every file the manifest names must be inside the world
+/// directory, and every layer's sha256 is checked against the manifest.
 /// </summary>
 public static class WorldFiles
 {
     private const string HeightLayer = "h_maa";
     private const string ClassLayer = "maastoluokka";
+    private const string Crs = "EPSG:3067";
 
     /// <summary>Loads the world in <paramref name="directory"/>.</summary>
     /// <exception cref="InvalidDataException">The manifest is invalid or a layer does not match it.</exception>
@@ -25,6 +27,12 @@ public static class WorldFiles
         if (schema != 1)
         {
             throw new InvalidDataException($"Unsupported world schema version {schema}.");
+        }
+
+        var crs = root.TryGetProperty("crs", out var c) && c.ValueKind == JsonValueKind.String ? c.GetString() : null;
+        if (crs != Crs)
+        {
+            throw new InvalidDataException($"Manifest crs '{crs}' is not supported; expected {Crs}.");
         }
 
         var columns = root.GetProperty("width").GetInt32();
@@ -65,7 +73,7 @@ public static class WorldFiles
         }
 
         var file = entry.GetProperty("file").GetString() ?? "jyrkanteet.json";
-        var bytes = File.ReadAllBytes(Path.Combine(directory, file));
+        var bytes = File.ReadAllBytes(DataFile(directory, file));
         var actual = Convert.ToHexStringLower(SHA256.HashData(bytes));
         if (!string.Equals(entry.GetProperty("sha256").GetString(), actual, StringComparison.OrdinalIgnoreCase))
         {
@@ -92,19 +100,37 @@ public static class WorldFiles
             throw new InvalidDataException($"Layer '{name}' should be {type}.");
         }
 
-        var bytes = File.ReadAllBytes(Path.Combine(directory, layer.GetProperty("file").GetString() ?? name + ".bin"));
-        if (bytes.Length != expectedBytes)
-        {
-            throw new InvalidDataException($"Layer '{name}' has {bytes.Length} bytes, expected {expectedBytes}.");
-        }
-
+        var file = layer.GetProperty("file").GetString() ?? name + ".bin";
+        var bytes = File.ReadAllBytes(DataFile(directory, file));
         var expected = layer.GetProperty("sha256").GetString();
         var actual = Convert.ToHexStringLower(SHA256.HashData(bytes));
-        if (!string.Equals(expected, actual, StringComparison.OrdinalIgnoreCase))
+        if (bytes.Length != expectedBytes || !string.Equals(expected, actual, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidDataException($"Layer '{name}' does not match its checksum in the manifest (sha256 {actual}).");
+            if (bytes.AsSpan().StartsWith("version https://git-lfs.github.com/spec/"u8))
+            {
+                throw new InvalidDataException(
+                    $"Layer '{name}' ({file}) is a Git LFS pointer, not the data. Run: git lfs install && git lfs pull");
+            }
+
+            throw new InvalidDataException(bytes.Length != expectedBytes
+                ? $"Layer '{name}' has {bytes.Length} bytes, expected {expectedBytes}."
+                : $"Layer '{name}' does not match its checksum in the manifest (sha256 {actual}).");
         }
 
         return bytes;
+    }
+
+    /// <summary>
+    /// The path of a file the manifest names, which must be a relative path inside the world directory (no rooted path,
+    /// no <c>..</c> segment).
+    /// </summary>
+    private static string DataFile(string directory, string file)
+    {
+        if (Path.IsPathRooted(file) || file.Split('/', '\\').Contains(".."))
+        {
+            throw new InvalidDataException($"Manifest file '{file}' must be inside the world directory.");
+        }
+
+        return Path.Combine(directory, file);
     }
 }
