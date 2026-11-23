@@ -5,7 +5,10 @@ using Twin.Sim.Squads;
 namespace Twin.Sim;
 
 /// <summary>Fixed parameters of a simulation run. See docs/adr/0005-determinism.md.</summary>
-/// <param name="TickRateHz">Simulation updates per simulated second. Independent of frame rate.</param>
+/// <param name="TickRateHz">
+/// Simulation updates per simulated second. Independent of frame rate. A timer resolves to the first tick at or after it
+/// is due, so at most one tick late; weapon rates are average rates and do not depend on the tick rate.
+/// </param>
 /// <param name="Seed">Seed for all randomness in the run.</param>
 public sealed record SimulationConfig(int TickRateHz = 20, ulong Seed = 1)
 {

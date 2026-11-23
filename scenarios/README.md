@@ -100,6 +100,8 @@ Points are ETRS-TM35FIN `[easting, northing]`, as read from a map; the simulatio
 }
 ```
 
+- `dtSeconds` is the tick, 0.5 s (2 Hz) as in spec v0.1; the engine's own default is 20 Hz. A timer resolves to the
+  first tick at or after it is due (at most one tick late); weapon rates are average rates at any tick.
 - The agent's destination B is the last centerline point. The agent is spec v0.1 infantry; `canRappel` (optional,
   default false) lets it cross cliffs (ADR 0010).
 - `leader.answer` is `grant`, `deny` or `noAnswer`; acceptance tests run every variant regardless of this value.

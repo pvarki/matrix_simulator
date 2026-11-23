@@ -51,7 +51,9 @@ unless the team changes the ADR:
 - .NET 10 and `net10.0` (ADR 0007), not .NET 8: .NET 8 support ends in November 2026, and Godot 4.7.2 builds
   `net10.0` fine.
 - Projects are `Twin.Sim`, `Twin.Headless`, `Twin.Client`, not `Sim.Core`/`Sim.World`/`Sim.Cli`/`Sim.Godot`.
-- The tick rate is configurable (`SimulationConfig.TickRateHz`, default 20 Hz). The spec's dt = 0.5 s is 2 Hz.
+- The tick rate is configurable (`SimulationConfig.TickRateHz`, default 20 Hz). The spec's dt = 0.5 s is 2 Hz, the
+  tick of scenario files and spec tests. Timers resolve to the first tick at or after they are due; fire rates are
+  averages, the same at any tick rate.
 - The existing `ITerrain` covers height only; the spec's `IWorldQuery` (terrain class, cell size) is new API.
 
 ## Implementation map

@@ -9,7 +9,8 @@ namespace Twin.Scenarios.Tests.Squad;
 /// The drill wins over a squad posture command (backlog 0004 S5a2; the two limitations S1 left with 0003's drill). A
 /// member in the drill keeps the drill's posture when a squad posture command reaches it, and takes the commanded posture
 /// when the drill ends. <see cref="SetSquadPosture"/> does not end the squad leader's own drill. Red fires a rifle that
-/// never hits; the squad returns fire, so a member shot at goes into the drill.
+/// never hits; the squad returns fire, so a member shot at goes into the drill. The squad's rifles never hit either, so
+/// hit luck cannot put red out of action and end a test early.
 /// </summary>
 public class DrillAndSquadPostureTests
 {
@@ -19,7 +20,8 @@ public class DrillAndSquadPostureTests
     // the row, holding fire until ordered.
     private static ScenarioRun Squad() => Scenario.ForSquad()
         .WithTerrain(TestMap.Create(widthMeters: 100, heightMeters: 120).Build())
-        .WithSquad(SpecSquad.Reference(), new Vec2(21, 61), rules: RulesOfEngagement.ReturnFire)
+        .WithSquad(SpecSquad.Reference(), new Vec2(21, 61), rules: RulesOfEngagement.ReturnFire,
+            weapon: SpecSuppression.NeverHits(SpecShooting.Rifle))
         .WithFighter("red", new Vec2(36, 21), Side.Red, RulesOfEngagement.HoldFire, SpecSuppression.NeverHits(SpecShooting.Rifle))
         .Build();
 

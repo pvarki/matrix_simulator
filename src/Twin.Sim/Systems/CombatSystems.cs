@@ -93,7 +93,10 @@ public sealed class CombatStatusSystem : ISimSystem
 /// of rounds. Every shot is heard within the weapon's sound range, shows a muzzle flash, and adds fire pressure to its
 /// target and to anyone its rounds pass close by; a round passing within the under-fire distance starts the drill of an
 /// agent that may return fire. A shot may hit: the first hit pins the target, a second puts it out of action. Units act
-/// in id order and every shot draws one number, so a run is deterministic.
+/// in id order and every shot draws one number, so a run is deterministic. Shots keep the weapon's rate on average at any
+/// tick rate: a shot fired on schedule (on the first tick at or after it was due) counts the next one from when it was due,
+/// not from the tick, so the lateness does not build up; fire that starts or resumes counts from now, with no catch-up
+/// burst. A shooter that paused for less than one tick keeps its schedule.
 /// </summary>
 public sealed class FireSystem : ISimSystem
 {
@@ -222,7 +225,10 @@ public sealed class FireSystem : ISimSystem
         var available = shooter.CurrentOrder is FireAt ? shooter.RoundsLeft : shooter.RoundsLeft - Reserve(simulation, combatant);
         var rounds = Math.Min(weapon.RoundsPerBurst, available);
         shooter.RoundsLeft -= rounds;
-        shooter.NextShotTime = now + (mode == FireMode.Snap ? weapon.SnapSecondsPerShot : weapon.SecondsPerShot);
+        var scheduledFrom = now - shooter.NextShotTime < simulation.Config.TickSeconds - CombatQueries.TimeEpsilon
+            ? shooter.NextShotTime // on schedule: the next shot counts from when this one was due
+            : now; // the first shot, or fire resumed after a pause: no catch-up
+        shooter.NextShotTime = scheduledFrom + (mode == FireMode.Snap ? weapon.SnapSecondsPerShot : weapon.SecondsPerShot);
         shooter.FlashUntil = now + weapon.FlashSeconds;
         if (shooter.Drill is { } drill && shooter.DrillStage == ContactDrillStage.SnapShots)
         {
