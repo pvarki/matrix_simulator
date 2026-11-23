@@ -12,6 +12,8 @@
 - Prefer few dependencies. The scenario kit has its own assertions instead of an assertion library; this also
   avoids licence surprises (FluentAssertions 8, for example, moved to a commercial licence).
 - NuGet vulnerability auditing is on; a vulnerable package fails the build.
+- Actions are pinned by commit SHA, images by digest, pip packages by hash, and NuGet by lock files with
+  locked-mode restore; Dependabot (14-day cooldown) proposes upgrades, one per PR.
 
 ## Consequences
 Builds are reproducible and stricter. Occasionally a warning must be fixed before a change can merge.
