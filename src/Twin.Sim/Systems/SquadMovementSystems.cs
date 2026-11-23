@@ -26,33 +26,14 @@ public sealed class SquadCohesionSystem : ISimSystem
         var doctrine = simulation.Config.SquadDoctrine;
         foreach (var squad in simulation.Squads)
         {
-            foreach (var member in squad.Members)
-            {
-                var unit = simulation.GetUnit(member.UnitId);
-                unit.HeldBySquad = false;
-                unit.SquadSpeedFactor = 1;
-            }
-
+            ResetSquadFactors(simulation, squad);
             if (squad.LeaderId is not { } leaderId)
             {
                 continue;
             }
 
             var leader = simulation.GetUnit(leaderId);
-            switch (leader.CurrentOrder)
-            {
-                case MoveThroughCorridor order:
-                    squad.Corridor = order.Corridor;
-                    squad.MovementStarted = true;
-                    break;
-                case MoveTo:
-                    squad.Corridor = null;
-                    squad.MovementStarted = true;
-                    break;
-                default:
-                    break;
-            }
-
+            AdoptLeaderOrder(squad, leader);
             if (squad.MovementOrder is not null && squad.OrderRequestedAt is null && leader.Health != Combat.Health.OutOfAction &&
                 leader.Drill is null && leader.CurrentOrder is not (MoveTo or MoveThroughCorridor))
             {
@@ -82,6 +63,35 @@ public sealed class SquadCohesionSystem : ISimSystem
         }
     }
 
+    /// <summary>Clears last tick's squad hold and speed factor on every member; this tick's rules set them again.</summary>
+    private static void ResetSquadFactors(Simulation simulation, Squad squad)
+    {
+        foreach (var member in squad.Members)
+        {
+            var unit = simulation.GetUnit(member.UnitId);
+            unit.HeldBySquad = false;
+            unit.SquadSpeedFactor = 1;
+        }
+    }
+
+    /// <summary>The squad takes its corridor from the leader's movement order, and starts moving once the leader has one.</summary>
+    private static void AdoptLeaderOrder(Squad squad, Unit leader)
+    {
+        switch (leader.CurrentOrder)
+        {
+            case MoveThroughCorridor order:
+                squad.Corridor = order.Corridor;
+                squad.MovementStarted = true;
+                break;
+            case MoveTo:
+                squad.Corridor = null;
+                squad.MovementStarted = true;
+                break;
+            default:
+                break;
+        }
+    }
+
     /// <summary>
     /// A member's request to cross a boundary (S2b): after the relay time the leader asks the platoon leader (the scripted
     /// leader), unless a squad permit already covers it; a grant becomes a squad permit, a denial or timeout leaves the
@@ -103,7 +113,7 @@ public sealed class SquadCohesionSystem : ISimSystem
 
         if (request.LeaderAskedAt is not { } askedAt)
         {
-            if (now >= request.AskedAt + simulation.Config.SquadDoctrine.RelaySeconds - 1e-9)
+            if (now >= request.AskedAt + simulation.Config.SquadDoctrine.RelaySeconds - CombatQueries.TimeEpsilon)
             {
                 if (squad.Permits.Any(p => p.Covers(request.BoundaryId, request.At)))
                 {
@@ -123,7 +133,7 @@ public sealed class SquadCohesionSystem : ISimSystem
         var timeout = simulation.Config.Permission.TimeoutSeconds;
         var waited = now - askedAt;
         if (platoonLeader is { Answer: not Command.LeaderAnswer.NoAnswer } && platoonLeader.DelaySeconds <= timeout &&
-            waited >= platoonLeader.DelaySeconds - 1e-9)
+            waited >= platoonLeader.DelaySeconds - CombatQueries.TimeEpsilon)
         {
             simulation.Log(new PermissionAnswered(now, leaderId, request.BoundaryId, platoonLeader.Answer));
             if (platoonLeader.Answer == Command.LeaderAnswer.Grant)
@@ -137,7 +147,7 @@ public sealed class SquadCohesionSystem : ISimSystem
 
             squad.PendingRequest = null;
         }
-        else if (waited >= timeout - 1e-9)
+        else if (waited >= timeout - CombatQueries.TimeEpsilon)
         {
             simulation.Log(new PermissionTimedOut(now, leaderId, request.BoundaryId));
             squad.Refuse(request.BoundaryId);
@@ -327,12 +337,20 @@ public sealed class SquadFollowSystem : ISimSystem
             return;
         }
 
+        Walk(simulation, member, profile, route, previous, dt);
+    }
+
+    /// <summary>Walks the member along its route for one tick, from where it was at the start of the tick.</summary>
+    private static void Walk(Simulation simulation, Unit member, MovementProfile profile, List<Vec2> route, Vec3 previous, double dt)
+    {
+        var position = previous.Xy;
         var remaining = dt;
         var next = 1;
         while (remaining > 0 && next < route.Count)
         {
             var target = route[next];
-            var speed = SegmentSpeed(simulation, profile, route[next - 1], target) * member.SpeedFactor;
+            var speed = (simulation.Terrain is IWorldQuery world ? profile.SegmentSpeed(world, route[next - 1], target) : profile.OpenMps) *
+                member.SpeedFactor;
             var needed = position.DistanceTo(target) / speed;
             if (needed <= remaining)
             {
@@ -528,21 +546,5 @@ public sealed class SquadFollowSystem : ISimSystem
         }
 
         return centers.OrderBy(c => c.DistanceTo(point)).ThenBy(c => c.Y).ThenBy(c => c.X);
-    }
-
-    /// <summary>Speed along a move: the mean of the two cells' base speeds times the slope factor (as the corridor system).</summary>
-    private static double SegmentSpeed(Simulation simulation, MovementProfile profile, Vec2 a, Vec2 b)
-    {
-        if (simulation.Terrain is not IWorldQuery world)
-        {
-            return profile.OpenMps;
-        }
-
-        var sa = profile.BaseSpeed(world.ClassAt(a.X, a.Y));
-        var sb = profile.BaseSpeed(world.ClassAt(b.X, b.Y));
-        var baseSpeed = sa > 0 && sb > 0 ? (sa + sb) / 2 : Math.Max(sa, sb);
-        var length = a.DistanceTo(b);
-        var slope = length > 0 ? (world.GroundHeight(b.X, b.Y) - world.GroundHeight(a.X, a.Y)) / length : 0;
-        return Math.Max(baseSpeed * profile.SlopeSpeedFactor(slope), 0.01);
     }
 }

@@ -25,9 +25,6 @@ namespace Twin.Sim.Systems;
 /// </summary>
 public sealed class CorridorMovementSystem : ISimSystem
 {
-    /// <summary>Tolerance when comparing simulated times computed in different ways.</summary>
-    private const double TimeEpsilon = 1e-9;
-
     /// <inheritdoc />
     public void Update(Simulation simulation, double dtSeconds)
     {
@@ -103,7 +100,7 @@ public sealed class CorridorMovementSystem : ISimSystem
         var boundary = progress.Request!.BoundaryId;
 
         if (leader is { Answer: not LeaderAnswer.NoAnswer } && leader.DelaySeconds <= timeout &&
-            waited >= leader.DelaySeconds - TimeEpsilon)
+            waited >= leader.DelaySeconds - CombatQueries.TimeEpsilon)
         {
             simulation.Log(new PermissionAnswered(now, unit.Id, boundary, leader.Answer));
             if (leader.Answer == LeaderAnswer.Grant)
@@ -124,7 +121,7 @@ public sealed class CorridorMovementSystem : ISimSystem
 
             Plan(simulation, world, unit, profile, progress);
         }
-        else if (waited >= timeout - TimeEpsilon)
+        else if (waited >= timeout - CombatQueries.TimeEpsilon)
         {
             simulation.Log(new PermissionTimedOut(now, unit.Id, boundary));
             progress.Refused = true;
@@ -262,7 +259,7 @@ public sealed class CorridorMovementSystem : ISimSystem
             simulation.Log(new EdgeDeployed(simulation.TimeSeconds, unit.Id, squad.Id));
             Request(simulation, unit, progress, crossing);
         }
-        else if (simulation.TimeSeconds >= progress.DeploymentCommandedAt + simulation.Config.SquadDoctrine.EdgeDeploymentSeconds - TimeEpsilon)
+        else if (simulation.TimeSeconds >= progress.DeploymentCommandedAt + simulation.Config.SquadDoctrine.EdgeDeploymentSeconds - CombatQueries.TimeEpsilon)
         {
             Request(simulation, unit, progress, crossing);
         }
@@ -308,7 +305,7 @@ public sealed class CorridorMovementSystem : ISimSystem
         while (remaining > 0 && progress.Next < route.Count)
         {
             var target = route[progress.Next];
-            var speed = SegmentSpeed(world, profile, route[progress.Next - 1], target) * unit.SpeedFactor;
+            var speed = profile.SegmentSpeed(world, route[progress.Next - 1], target) * unit.SpeedFactor;
             var distance = position.DistanceTo(target);
             var needed = distance / speed;
             if (needed <= remaining)
@@ -352,17 +349,6 @@ public sealed class CorridorMovementSystem : ISimSystem
             unit.Velocity = (unit.Position - previous) * (1 / dt);
             CombatQueries.SetActivity(unit, UnitActivity.Moving);
         }
-    }
-
-    /// <summary>The speed along a route segment: the same rule as the pathfinder's arc speed.</summary>
-    private static double SegmentSpeed(IWorldQuery world, MovementProfile profile, Vec2 a, Vec2 b)
-    {
-        var sa = profile.BaseSpeed(world.ClassAt(a.X, a.Y));
-        var sb = profile.BaseSpeed(world.ClassAt(b.X, b.Y));
-        var baseSpeed = sa > 0 && sb > 0 ? (sa + sb) / 2 : Math.Max(sa, sb);
-        var length = a.DistanceTo(b);
-        var slope = length > 0 ? (world.GroundHeight(b.X, b.Y) - world.GroundHeight(a.X, a.Y)) / length : 0;
-        return Math.Max(baseSpeed * profile.SlopeSpeedFactor(slope), 0.01);
     }
 }
 

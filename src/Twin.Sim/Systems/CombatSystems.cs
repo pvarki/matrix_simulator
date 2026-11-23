@@ -236,19 +236,7 @@ public sealed class FireSystem : ISimSystem
             shooter.IsSuppressed, shooter.Health == Health.Wounded, combatant.Experience, mode);
         var hit = HitModel.Roll(simulation.Random, HitModel.BurstProbability(probability, rounds));
         simulation.Log(new ShotFired(now, shooter.Id, target.Id, hit, mode, rounds));
-
-        foreach (var listener in simulation.Units)
-        {
-            if (listener != shooter && listener.Combatant is not null && listener.Health != Health.OutOfAction &&
-                listener.Position.Xy.DistanceTo(shooter.Position.Xy) <= weapon.SoundRangeMeters)
-            {
-                simulation.Log(new ShotHeard(now, listener.Id, shooter.Id, shooter.Position.Xy, weapon.Class));
-                if (weapon.Class == WeaponClass.HeavyMachineGun && listener.Combatant.Side != combatant.Side)
-                {
-                    listener.KnowsHeavyMachineGun = true; // an enemy's, recognised by the sound (backlog 0004 S5a2)
-                }
-            }
-        }
+        Heard(simulation, shooter, combatant, weapon, now);
 
         // Fire pressure: on the target at the round's miss distance, on everyone else at their distance from its path.
         var miss = SuppressionModel.MissDistance(rules, distance, mode, combatant.Experience, observation);
@@ -267,6 +255,23 @@ public sealed class FireSystem : ISimSystem
         }
 
         CombatQueries.UpdateActivity(target);
+    }
+
+    /// <summary>Everyone in action within the weapon's sound range hears the shot; an enemy heavy machine gun is recognised.</summary>
+    private static void Heard(Simulation simulation, Unit shooter, Combatant combatant, WeaponProfile weapon, double now)
+    {
+        foreach (var listener in simulation.Units)
+        {
+            if (listener != shooter && listener.Combatant is not null && listener.Health != Health.OutOfAction &&
+                listener.Position.Xy.DistanceTo(shooter.Position.Xy) <= weapon.SoundRangeMeters)
+            {
+                simulation.Log(new ShotHeard(now, listener.Id, shooter.Id, shooter.Position.Xy, weapon.Class));
+                if (weapon.Class == WeaponClass.HeavyMachineGun && listener.Combatant.Side != combatant.Side)
+                {
+                    listener.KnowsHeavyMachineGun = true; // an enemy's, recognised by the sound (backlog 0004 S5a2)
+                }
+            }
+        }
     }
 
     private static void PassBystanders(Simulation simulation, Unit shooter, Unit target, WeaponProfile weapon, int rounds, double miss, double now)
