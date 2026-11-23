@@ -20,6 +20,9 @@ internal static class SquadSlots
     /// <summary>Step when searching along the line from an unusable slot toward the path, in metres.</summary>
     private const double SearchStepMeters = 0.25;
 
+    /// <summary>Lateral distances closer than this, in metres, are equal up to rounding.</summary>
+    private const double EqualDistanceMeters = 1e-6;
+
     /// <summary>
     /// Every following member's slot and the leader's own position, or null while the members have nothing to follow:
     /// before the squad's first movement order, while it has no leader, while the leader is in the drill under fire, and
@@ -176,7 +179,7 @@ internal static class SquadSlots
         for (var i = 1; i < distances.Count; i++)
         {
             var difference = distances[i] - distances[i - 1];
-            if (difference > 1e-6) // equal distances, up to rounding, are side by side on the two arms
+            if (difference > EqualDistanceMeters) // equal distances, up to rounding, are side by side on the two arms
             {
                 gap = Math.Min(gap, difference);
             }
@@ -252,7 +255,7 @@ internal static class SquadSlots
     /// </summary>
     private static void Append(List<Vec2> path, Vec2 point)
     {
-        if (path.Count > 0 && path[^1].DistanceTo(point) <= 1e-9)
+        if (path.Count > 0 && path[^1].DistanceTo(point) <= Tolerance.Epsilon)
         {
             return;
         }
@@ -263,7 +266,7 @@ internal static class SquadSlots
             path.RemoveAt(path.Count - 1);
         }
 
-        if (path.Count == 0 || path[^1].DistanceTo(point) > 1e-9)
+        if (path.Count == 0 || path[^1].DistanceTo(point) > Tolerance.Epsilon)
         {
             path.Add(point);
         }

@@ -18,6 +18,9 @@ namespace Twin.Sim.Scenarios;
 /// </summary>
 public sealed class ScenarioDefinition
 {
+    /// <summary>How far <c>dtSeconds</c> may be from 1 / its whole tick rate, in seconds; strict, as it checks a written value.</summary>
+    private const double DtMatchTolerance = 1e-12;
+
     private ScenarioDefinition(
         LoadedWorld world, string agentId, Vec2 start, Corridor corridor, ScriptedLeader leader, PermissionRules permission,
         MovementProfile profile, ulong seed, int tickRateHz, Doctrine doctrine, SquadDefinition? squad,
@@ -143,7 +146,7 @@ public sealed class ScenarioDefinition
         var seed = root.TryGetProperty("seed", out var s) ? s.GetUInt64() : 1UL;
         var dt = root.TryGetProperty("dtSeconds", out var d) ? d.GetDouble() : 0.5;
         var tickRate = (int)Math.Round(1 / dt);
-        if (Math.Abs((1.0 / tickRate) - dt) > 1e-12)
+        if (Math.Abs((1.0 / tickRate) - dt) > DtMatchTolerance)
         {
             throw new InvalidDataException($"dtSeconds {dt} must be 1 / a whole number of ticks per second.");
         }
@@ -230,7 +233,7 @@ public sealed class ScenarioDefinition
             throw new InvalidDataException($"Squad '{squad.Id}': its start is off the map.");
         }
 
-        if (corridor.Centerline.Count < 2 || corridor.Centerline[0].DistanceTo(corridor.Centerline[1]) < 1e-9)
+        if (corridor.Centerline.Count < 2 || corridor.Centerline[0].DistanceTo(corridor.Centerline[1]) < Tolerance.Epsilon)
         {
             throw new InvalidDataException(
                 $"Squad '{squad.Id}': the corridor's first segment must have a length, to lay the squad out along it.");
@@ -343,7 +346,7 @@ public sealed class ScenarioDefinition
                 simulation.Issue(enemy.Id, new SetPosture(enemy.Posture));
             }
 
-            if (enemy.WatchToward is { } point && point.DistanceTo(enemy.Position) > 1e-9)
+            if (enemy.WatchToward is { } point && point.DistanceTo(enemy.Position) > Tolerance.Epsilon)
             {
                 simulation.Issue(enemy.Id, new Watch(point - enemy.Position));
             }

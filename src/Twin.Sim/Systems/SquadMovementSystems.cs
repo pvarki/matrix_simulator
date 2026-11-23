@@ -282,7 +282,7 @@ internal sealed class SquadFollowSystem : ISimSystem
 
         var previous = member.Position;
         var position = previous.Xy;
-        if (member.IsAlerted || position.DistanceTo(slot) <= 1e-9)
+        if (member.IsAlerted || position.DistanceTo(slot) <= Tolerance.Epsilon)
         {
             member.Velocity = Vec3.Zero;
             CombatQueries.SetActivity(member, UnitActivity.Idle);
@@ -300,7 +300,7 @@ internal sealed class SquadFollowSystem : ISimSystem
             {
                 goRound = true; // refused under this order: it finds a way round, which the path search keeps to
             }
-            else if (position.DistanceTo(stopAt) > 1e-9)
+            else if (position.DistanceTo(stopAt) > Tolerance.Epsilon)
             {
                 slot = stopAt; // S2b: it walks up to the boundary first
             }
@@ -461,7 +461,7 @@ internal sealed class SquadFollowSystem : ISimSystem
             var waypoints = new List<Vec2> { start };
             foreach (var point in path.Waypoints.Append(reachable))
             {
-                if (point.DistanceTo(waypoints[^1]) > 1e-9)
+                if (point.DistanceTo(waypoints[^1]) > Tolerance.Epsilon)
                 {
                     waypoints.Add(point);
                 }

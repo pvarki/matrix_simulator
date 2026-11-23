@@ -26,7 +26,7 @@ internal sealed class ObservationSystem : ISimSystem
         ArgumentNullException.ThrowIfNull(simulation);
         foreach (var unit in simulation.Units)
         {
-            if (unit.Velocity.Xy.Length > 1e-9)
+            if (unit.Velocity.Xy.Length > Tolerance.Epsilon)
             {
                 unit.Heading = unit.Velocity.Xy.Normalized();
             }

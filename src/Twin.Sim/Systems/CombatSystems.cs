@@ -197,7 +197,7 @@ internal sealed class FireSystem : ISimSystem
 
     /// <summary>Rounds kept in reserve: the doctrine's share of the rounds carried, rounded up.</summary>
     private static int Reserve(Simulation simulation, Combatant combatant) =>
-        (int)Math.Ceiling((simulation.Config.Combat.Doctrine.Drill.ReserveFraction * combatant.Weapon.Rounds) - 1e-9);
+        (int)Math.Ceiling((simulation.Config.Combat.Doctrine.Drill.ReserveFraction * combatant.Weapon.Rounds) - Tolerance.Epsilon);
 
     private static Unit? Nearest(Simulation simulation, Unit shooter, IEnumerable<Unit> candidates) =>
         candidates
@@ -352,7 +352,7 @@ internal sealed class FireSystem : ISimSystem
 internal static class CombatQueries
 {
     /// <summary>Tolerance when comparing simulated times computed in different ways.</summary>
-    public const double TimeEpsilon = 1e-9;
+    public const double TimeEpsilon = Tolerance.Epsilon;
 
     private static readonly UnitActivity[] CombatActivities =
         [UnitActivity.Suppressed, UnitActivity.Pinned, UnitActivity.OutOfAction, UnitActivity.ChangingPosture];

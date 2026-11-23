@@ -91,7 +91,7 @@ internal sealed class SpottingSystem : ISimSystem
         var seconds = rules.BaseSeconds(combatant.Experience) * (1 + (distance / rules.ReferenceDistanceMeters)) * angleFactor /
             combat.For(target.Posture).SizeFactor / sight.Transmission;
         var progress = observer.SpotProgress.GetValueOrDefault(target.Id) + (dt / seconds);
-        if (progress >= 1 - 1e-9)
+        if (progress >= 1 - Tolerance.Epsilon)
         {
             Spot(simulation, observer, target);
         }
@@ -113,7 +113,7 @@ internal sealed class SpottingSystem : ISimSystem
     /// <summary>The angle in degrees between two directions; 0 when either has no length.</summary>
     private static double AngleDegrees(Vec2 a, Vec2 b)
     {
-        if (a.Length <= 1e-9 || b.Length <= 1e-9)
+        if (a.Length <= Tolerance.Epsilon || b.Length <= Tolerance.Epsilon)
         {
             return 0;
         }
@@ -126,7 +126,7 @@ internal sealed class SpottingSystem : ISimSystem
         foreach (var unit in simulation.Units)
         {
             unit.WatchesSectors = false;
-            if (WatchToward(simulation, unit) is { } direction && direction.Length > 1e-9)
+            if (WatchToward(simulation, unit) is { } direction && direction.Length > Tolerance.Epsilon)
             {
                 unit.WatchDirection = direction.Normalized();
             }
@@ -143,7 +143,7 @@ internal sealed class SpottingSystem : ISimSystem
             return attacker.Position.Xy - here;
         }
 
-        var moving = unit.Velocity.Xy.Length > 1e-9;
+        var moving = unit.Velocity.Xy.Length > Tolerance.Epsilon;
         if (moving)
         {
             unit.WatchTarget = null; // it watches a known enemy until it moves on

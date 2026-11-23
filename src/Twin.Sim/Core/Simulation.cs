@@ -230,7 +230,7 @@ public sealed class Simulation
         }
 
         if (order is Watch { Direction: var direction } &&
-            (!double.IsFinite(direction.X) || !double.IsFinite(direction.Y) || direction.Length <= 1e-9))
+            (!double.IsFinite(direction.X) || !double.IsFinite(direction.Y) || direction.Length <= Tolerance.Epsilon))
         {
             throw new OrderRejectedException($"A watch order needs a finite direction, not {direction}.");
         }
