@@ -12,7 +12,7 @@ The team is building a digital twin of a military operating environment: terrain
 fight in it by explicit, testable rules. The backlog names two users: operators, who order units and watch them carry
 the orders out, and exercise designers, who place agents and squads on real terrain and watch them engage.
 
-> TODO: state the purpose the twin serves (for example training, exercise planning or analysis) and who owns it.
+The purpose of Twin is to simulate realistic warfare. It is owned by Team 10.
 
 ### Solution
 
